@@ -58,7 +58,7 @@ func NewService(opts ...ServiceOption) *ServiceConfig {
 	return sc
 }
 
-// WithGrpc passes gRPC as option to servic
+// WithGrpc passes gRPC as option to service
 func WithGrpc(g *goservice_grpc.Grpc) ServiceOption {
 	return func(s *ServiceConfig) {
 		s.Grpc = g
