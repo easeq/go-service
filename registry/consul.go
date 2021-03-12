@@ -41,7 +41,7 @@ func NewRegistry() ServiceRegistry {
 }
 
 // Register registers service with the registry
-func (c *Consul) Register(ctx context.Context, name string, host string, port int) error {
+func (c *Consul) Register(ctx context.Context, name string, host string, port int) *ErrRegistryRegFailed {
 	if err := consul.Register(
 		ctx,
 		name,
@@ -50,7 +50,7 @@ func (c *Consul) Register(ctx context.Context, name string, host string, port in
 		c.Address(),
 		c.TTL,
 	); err != nil {
-		return err
+		return &ErrRegistryRegFailed{err}
 	}
 
 	return nil
@@ -68,4 +68,8 @@ func (c *Consul) GetConnectionString(service string) string {
 		c.Address(),
 		service,
 	)
+}
+
+func (c *Consul) ToString() string {
+	return "consul"
 }

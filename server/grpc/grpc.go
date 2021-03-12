@@ -11,6 +11,8 @@ import (
 	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/db"
 	goservice_db "github.com/easeq/go-service/db"
+	"github.com/easeq/go-service/registry"
+	"github.com/easeq/go-service/server"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"google.golang.org/grpc"
 )
@@ -40,7 +42,7 @@ type Grpc struct {
 type Option func(*Grpc)
 
 // NewGrpc creates a new gRPC
-func NewGrpc(opts ...Option) *Grpc {
+func NewGrpc(opts ...Option) server.Server {
 	g := &Grpc{
 		DialOptions:   []grpc.DialOption{grpc.WithInsecure()},
 		ServerOptions: []grpc.ServerOption{},
@@ -93,6 +95,11 @@ func WithDatabase(database db.ServiceDatabase) Option {
 
 		g.Database = database
 	}
+}
+
+// Register registers the grpc server with the service registry
+func (g *Grpc) Register(ctx context.Context, reg registry.ServiceRegistry, name string) *registry.ErrRegistryRegFailed {
+	return reg.Register(ctx, name, g.Host, g.Port)
 }
 
 // Run runs gRPC service
