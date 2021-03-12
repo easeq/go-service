@@ -50,11 +50,11 @@ func newConnection(uri string) *sql.DB {
 }
 
 // NewPostgres returns new connection to the postgres db
-func NewPostgres(asRoot bool) ServiceDatabase {
+func NewPostgres() ServiceDatabase {
 	cfg := GetConfig()
 
 	return &Postgres{
-		Handle: newConnection(cfg.GetURI(asRoot)),
+		Handle: newConnection(cfg.GetURI(true)),
 		Config: cfg,
 	}
 }
@@ -65,26 +65,22 @@ func GetConfig() *Config {
 }
 
 // Setup creates a database, a user and assigns the created user to the database
-func (db *Postgres) Setup() error {
+func (db *Postgres) Setup() *ErrDatabaseSetup {
 	if err := db.Create(); err != nil {
-		return err
+		return &ErrDatabaseSetup{err}
 	}
 
 	if err := db.RevokePublicAccess(); err != nil {
-		return err
+		return &ErrDatabaseSetup{err}
 	}
 
 	if err := db.CreateUser(); err != nil {
-		return err
+		return &ErrDatabaseSetup{err}
 	}
 
 	if err := db.AssignUser(); err != nil {
-		return err
+		return &ErrDatabaseSetup{err}
 	}
-
-	db.Close()
-
-	db = NewPostgres(false).(*Postgres)
 
 	return nil
 }
@@ -157,4 +153,14 @@ func (db *Postgres) instance() database.Driver {
 // Close database connection
 func (db *Postgres) Close() error {
 	return db.Handle.Close()
+}
+
+// UpdateHandle updates the database handle
+func (db *Postgres) UpdateHandle() error {
+	if err := db.Close(); err != nil {
+		return err
+	}
+
+	db.Handle = newConnection(db.Config.GetURI(false))
+	return nil
 }

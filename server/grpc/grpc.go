@@ -47,7 +47,7 @@ func NewGrpc(opts ...Option) server.Server {
 		DialOptions:   []grpc.DialOption{grpc.WithInsecure()},
 		ServerOptions: []grpc.ServerOption{},
 		Config:        goconfig.NewEnvConfig(new(Config)).(*Config),
-		Database:      goservice_db.NewPostgres(true),
+		Database:      goservice_db.NewPostgres(),
 		exit:          make(chan os.Signal),
 		Gateway:       NewGateway(),
 	}
@@ -105,7 +105,11 @@ func (g *Grpc) Register(ctx context.Context, reg registry.ServiceRegistry, name 
 // Run runs gRPC service
 func (g *Grpc) Run(ctx context.Context) error {
 	if err := g.Database.Setup(); err != nil {
-		log.Printf("Database setup was unsuccesful: %s", err)
+		log.Println(err)
+	}
+
+	if err := g.Database.UpdateHandle(); err != nil {
+		return err
 	}
 
 	defer g.Database.Close()

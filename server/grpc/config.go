@@ -23,10 +23,10 @@ func (c *Config) UnmarshalEnv(es env.EnvSet) error {
 
 // Address returns the full formatted http address
 func (c *Config) Address() string {
-	return fmt.Sprintf("%s:%d", c.Host, c.Port)
+	return fmt.Sprintf(":%d", c.Port)
 }
 
 // HTTPAddress returns the full formatted http address
 func (c *Config) HTTPAddress() string {
-	return fmt.Sprintf("%s:%d", c.HTTPHost, c.HTTPPort)
+	return fmt.Sprintf(":%d", c.HTTPPort)
 }
