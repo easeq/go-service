@@ -9,6 +9,9 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
+
+	// migration file driver
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
 var (
@@ -130,6 +133,7 @@ func (db *Postgres) Migrate() error {
 		db.Driver,
 		db.instance(),
 	)
+
 	if err != nil {
 		return ErrMigrationLoad
 	}
