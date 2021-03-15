@@ -116,7 +116,7 @@ func (g *Grpc) Run(ctx context.Context) error {
 
 	// Run migrations
 	if err := g.Database.Migrate(); err != nil {
-		return err
+		log.Println(err)
 	}
 
 	// Register service
