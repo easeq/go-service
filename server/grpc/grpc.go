@@ -114,6 +114,11 @@ func (g *Grpc) Run(ctx context.Context) error {
 
 	defer g.Database.Close()
 
+	// Run migrations
+	if err := g.Database.Migrate(); err != nil {
+		return err
+	}
+
 	// Register service
 	server := grpc.NewServer(g.ServerOptions...)
 	if g.ServiceRegistrar == nil {
