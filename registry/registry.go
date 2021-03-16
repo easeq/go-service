@@ -18,6 +18,8 @@ func (e *ErrRegistryRegFailed) Error() string {
 type ServiceRegistry interface {
 	// Registers the service
 	Register(ctx context.Context, name string, host string, port int) *ErrRegistryRegFailed
+	// Address returns the address of the registry
+	Address() string
 	// Returns the string name of the registry
 	ToString() string
 }

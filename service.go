@@ -5,9 +5,9 @@ import (
 
 	"github.com/Netflix/go-env"
 	goconfig "github.com/easeq/go-config"
-	goservice_registry "github.com/easeq/go-service/registry"
+	_ "github.com/easeq/go-consul-registry/v2/consul"
 	"github.com/easeq/go-service/server"
-	"github.com/easeq/go-service/server/grpc"
+	goservice_grpc "github.com/easeq/go-service/server/grpc"
 )
 
 // ServiceOption to pass as arg while creating new service
@@ -25,8 +25,7 @@ func (c *Config) UnmarshalEnv(es env.EnvSet) error {
 
 // ServiceConfig handles config required by the service
 type ServiceConfig struct {
-	Server   server.Server
-	Registry goservice_registry.ServiceRegistry
+	Server server.Server
 	*Config
 }
 
@@ -36,8 +35,7 @@ func NewService(opts ...ServiceOption) *ServiceConfig {
 	cfg.UnmarshalEnv(goconfig.EnvSet())
 
 	sc := &ServiceConfig{
-		Registry: goservice_registry.NewRegistry(),
-		Config:   cfg,
+		Config: cfg,
 	}
 
 	for _, opt := range opts {
@@ -45,7 +43,7 @@ func NewService(opts ...ServiceOption) *ServiceConfig {
 	}
 
 	if sc.Server == nil {
-		sc.Server = grpc.NewGrpc()
+		sc.Server = goservice_grpc.NewGrpc()
 	}
 
 	return sc
@@ -60,7 +58,7 @@ func WithServer(server server.Server) ServiceOption {
 
 // Run runs both the HTTP and gRPC server
 func (s *ServiceConfig) Run(ctx context.Context) error {
-	if err := s.Server.Register(ctx, s.Registry, s.Config.Name); err != nil {
+	if err := s.Server.Register(ctx, s.Config.Name); err != nil {
 		return err
 	}
 

@@ -10,9 +10,9 @@ import (
 
 // Config manages the HTTP server config
 type Config struct {
-	Host     string `env:"GRPC_HOST,default=localhost"`
+	Host     string `env:"GRPC_HOST,defaut="`
 	Port     int    `env:"GRPC_PORT,default=9090"`
-	HTTPHost string `env:"HTTP_HOST,default=localhost"`
+	HTTPHost string `env:"HTTP_HOST,default="`
 	HTTPPort int    `env:"HTTP_PORT,default=8080"`
 }
 
@@ -23,10 +23,10 @@ func (c *Config) UnmarshalEnv(es env.EnvSet) error {
 
 // Address returns the full formatted http address
 func (c *Config) Address() string {
-	return fmt.Sprintf(":%d", c.Port)
+	return fmt.Sprintf("%s:%d", c.Host, c.Port)
 }
 
 // HTTPAddress returns the full formatted http address
 func (c *Config) HTTPAddress() string {
-	return fmt.Sprintf(":%d", c.HTTPPort)
+	return fmt.Sprintf("%s:%d", c.HTTPHost, c.HTTPPort)
 }

@@ -61,15 +61,6 @@ func (c *Consul) Address() string {
 	return fmt.Sprintf("%s:%d", c.Host, c.Port)
 }
 
-// GetConnectionString returns consul connections string the given service
-func (c *Consul) GetConnectionString(service string) string {
-	return fmt.Sprintf(
-		"consul://%s/%s?scheme=https",
-		c.Address(),
-		service,
-	)
-}
-
 func (c *Consul) ToString() string {
 	return "consul"
 }
