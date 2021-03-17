@@ -3,13 +3,13 @@ package grpc
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 
 	goconfig "github.com/easeq/go-config"
+	"github.com/easeq/go-service/client"
 	"github.com/easeq/go-service/db"
 	goservice_db "github.com/easeq/go-service/db"
 	"github.com/easeq/go-service/registry"
@@ -36,7 +36,8 @@ type Grpc struct {
 	DialOptions      []grpc.DialOption
 	Database         goservice_db.ServiceDatabase
 	Registry         goservice_registry.ServiceRegistry
-	Clients          map[string]interface{}
+	Client           client.Client
+	Clients          map[string]client.Client
 	exit             chan os.Signal
 	*Gateway
 	*Config
@@ -47,6 +48,7 @@ type Option func(*Grpc)
 
 // NewGrpc creates a new gRPC
 func NewGrpc(opts ...Option) server.Server {
+	defaultRegistry := goservice_registry.NewRegistry()
 	g := &Grpc{
 		DialOptions:   []grpc.DialOption{grpc.WithInsecure()},
 		ServerOptions: []grpc.ServerOption{},
@@ -54,8 +56,15 @@ func NewGrpc(opts ...Option) server.Server {
 		Database:      goservice_db.NewPostgres(),
 		exit:          make(chan os.Signal),
 		Gateway:       NewGateway(),
-		Registry:      goservice_registry.NewRegistry(),
-		// Clients:       make(map[string]interface{}),
+		Registry:      defaultRegistry,
+		Client: &client.GrpcClient{
+			Opts: &client.GrpcClientOptions{
+				Scheme:      "http",
+				Registry:    defaultRegistry,
+				DialOptions: []grpc.DialOption{grpc.WithInsecure()},
+			},
+		},
+		Clients: make(map[string]client.Client),
 	}
 
 	for _, opt := range opts {
@@ -110,31 +119,13 @@ func WithRegistry(registry goservice_registry.ServiceRegistry) Option {
 	}
 }
 
-// // WithClient passes services registry externally
-// func WithClient(name string, client interface{}) Option {
-// 	return func(g *Grpc) {
-// 		g.Clients[name] = client
-// 	}
-// }
-
-// GetClientConnString returns the client connection string
-func (g *Grpc) GetClientConnString(name string, scheme string) string {
-	return fmt.Sprintf(
-		"consul://%s/%s?scheme=%s",
-		g.Registry.Address(),
-		name,
-		scheme,
-	)
-}
-
-// Get returns a connection to gRPC service with name
-func (g *Grpc) Get(name string, scheme string) grpc.ClientConnInterface {
-	conn, err := grpc.Dial(g.GetClientConnString(name, scheme), grpc.WithInsecure())
-	if err != nil {
-		log.Fatalf("gRPC connection to %s failed: %s", name, err)
+// Client creates if not exists and returns the client to call the service
+func (g *Grpc) GetClient(name string) client.Client {
+	if g.Clients[name].IsInitialized() == false {
+		g.Client.Init(name)
 	}
 
-	return conn
+	return g.Clients[name]
 }
 
 // Register registers the grpc server with the service registry
