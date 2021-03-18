@@ -37,7 +37,6 @@ type Grpc struct {
 	Database         goservice_db.ServiceDatabase
 	Registry         goservice_registry.ServiceRegistry
 	Client           client.Client
-	Clients          map[string]client.Client
 	exit             chan os.Signal
 	*Gateway
 	*Config
@@ -64,7 +63,6 @@ func NewGrpc(opts ...Option) server.Server {
 				DialOptions: []grpc.DialOption{grpc.WithInsecure()},
 			},
 		},
-		Clients: make(map[string]client.Client),
 	}
 
 	for _, opt := range opts {
@@ -121,11 +119,9 @@ func WithRegistry(registry goservice_registry.ServiceRegistry) Option {
 
 // Client creates if not exists and returns the client to call the service
 func (g *Grpc) GetClient(name string) client.Client {
-	if g.Clients[name].IsInitialized() == false {
-		g.Client.Init(name)
-	}
+	g.Client.Init(name)
 
-	return g.Clients[name]
+	return g.Client
 }
 
 // Register registers the grpc server with the service registry

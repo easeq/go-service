@@ -9,7 +9,7 @@ type Client interface {
 	// Return whether client has been initialized
 	IsInitialized() bool
 	// Calls a method on a service
-	Call(ctx context.Context, method string, req interface{}, res interface{}, opts interface{}) error
+	Call(ctx context.Context, method string, req interface{}, res interface{}, opts ...interface{}) error
 	// Closes the connection to the service
 	Close() error
 }
