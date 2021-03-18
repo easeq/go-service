@@ -56,6 +56,15 @@ func (c *Consul) Register(ctx context.Context, name string, host string, port in
 	return nil
 }
 
+func (c *Consul) ConnectionString(args ...interface{}) string {
+	return fmt.Sprintf(
+		"consul://%s/%s?scheme=%s",
+		c.Address(),
+		args[0],
+		args[1],
+	)
+}
+
 // Address returns the prepared consul address
 func (c *Consul) Address() string {
 	return fmt.Sprintf("%s:%d", c.Host, c.Port)
