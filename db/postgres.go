@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 
 	goconfig "github.com/easeq/go-config"
 	"github.com/golang-migrate/migrate/v4"
@@ -135,11 +136,13 @@ func (db *Postgres) Migrate() error {
 	)
 
 	if err != nil {
+		log.Println(err)
 		return ErrMigrationLoad
 	}
 
 	if err := m.Up(); err != nil {
-		return ErrRunMigration
+		log.Println(err)
+		return err
 	}
 
 	return nil
