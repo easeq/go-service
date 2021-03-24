@@ -132,7 +132,7 @@ func (g *Grpc) Register(ctx context.Context, name string) *registry.ErrRegistryR
 // Run runs gRPC service
 func (g *Grpc) Run(ctx context.Context) error {
 	if err := g.Database.Setup(); err != nil {
-		log.Println(err)
+		log.Printf("Database setup err -> %s", err)
 	}
 
 	if err := g.Database.UpdateHandle(); err != nil {
@@ -165,6 +165,9 @@ func (g *Grpc) Run(ctx context.Context) error {
 	go func() {
 		for range g.exit {
 			// sig is a ^C, handle it
+			log.Println("Closing DB connection")
+			g.Database.Close()
+
 			log.Println("Shutting down gRPC server...")
 			server.GracefulStop()
 			<-ctx.Done()
