@@ -129,10 +129,16 @@ func (db *Postgres) AssignUser() error {
 
 // Migrate runs all remaining db migrations
 func (db *Postgres) Migrate() error {
+	instance, err := db.instance()
+	if err != nil {
+		log.Println(err)
+		return ErrCreateDBInstance
+	}
+
 	m, err := migrate.NewWithDatabaseInstance(
 		db.MigrationsPath,
 		db.Driver,
-		db.instance(),
+		instance,
 	)
 
 	if err != nil {
@@ -148,13 +154,13 @@ func (db *Postgres) Migrate() error {
 	return nil
 }
 
-func (db *Postgres) instance() database.Driver {
+func (db *Postgres) instance() (database.Driver, error) {
 	driverInstance, err := postgres.WithInstance(db.Handle, &postgres.Config{})
 	if err != nil {
-		panic(ErrCreateDBInstance)
+		return nil, err
 	}
 
-	return driverInstance
+	return driverInstance, nil
 }
 
 // Close database connection
