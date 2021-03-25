@@ -1,54 +1,43 @@
-package client
+package grpc
 
 import (
 	"context"
 	"fmt"
-	"sync"
+	"time"
 
-	"github.com/easeq/go-service/registry"
 	"google.golang.org/grpc"
 )
 
 type GrpcClient struct {
-	cc   *grpc.ClientConn
-	mu   sync.RWMutex
-	Opts *GrpcClientOptions
-	wg   sync.WaitGroup
+	cc    *grpc.ClientConn
+	timer *time.Timer
 }
 
-type GrpcClientOptions struct {
-	Scheme      string
-	Registry    registry.ServiceRegistry
-	DialOptions []grpc.DialOption
-}
-
-// Init gRPC client
-func (gc *GrpcClient) Init(name string) error {
-	gc.mu.Lock()
-	defer gc.mu.Unlock()
-	defer gc.wg.Add(1)
-
-	if gc.IsInitialized() {
-		return nil
-	}
-
-	cc, err := grpc.Dial(gc.Opts.Registry.ConnectionString(name, gc.Opts.Scheme), gc.Opts.DialOptions...)
+// NewGrpcClient creates a new gRPC client connection
+func NewGrpcClient(address string, ttl time.Duration, opts ...grpc.DialOption) (*GrpcClient, error) {
+	// Get gRPC client connection
+	cc, err := grpc.Dial(address, opts...)
 	if err != nil {
-		return fmt.Errorf("gRPC connection failed: %v", err)
+		return nil, fmt.Errorf("gRPC connection failed: %v", err)
 	}
 
-	gc.cc = cc
+	// Create new gRPC client
+	gc := &GrpcClient{cc, time.NewTimer(ttl)}
+	go func() {
+		// Close connection after TTL
+		<-gc.timer.C
+		gc.cc.Close()
+	}()
 
-	return nil
+	return gc, nil
 }
 
-// Return whether client has been intialized
-func (gc *GrpcClient) IsInitialized() bool {
+// isInitialized returns whether the client connection has already been initialzed
+func (gc *GrpcClient) isInitialized() bool {
 	state := ""
 	if gc.cc != nil {
 		state = gc.cc.GetState().String()
 	}
-
 	return gc.cc != nil && state != "SHUTDOWN"
 }
 
@@ -70,9 +59,6 @@ func (gc *GrpcClient) Call(
 
 // Close - closes the connection to the gRPC service server
 func (gc *GrpcClient) Close() error {
-	gc.wg.Done()
-	gc.wg.Wait()
-
 	if gc.cc != nil && gc.cc.GetState().String() != "SHUTDOWN" {
 		return gc.cc.Close()
 	}

@@ -9,9 +9,10 @@ import (
 	"os/signal"
 
 	goconfig "github.com/easeq/go-config"
-	"github.com/easeq/go-service/client"
+	grpc_client "github.com/easeq/go-service/client/grpc"
 	"github.com/easeq/go-service/db"
 	goservice_db "github.com/easeq/go-service/db"
+	"github.com/easeq/go-service/pool"
 	"github.com/easeq/go-service/registry"
 	goservice_registry "github.com/easeq/go-service/registry"
 	"github.com/easeq/go-service/server"
@@ -36,7 +37,7 @@ type Grpc struct {
 	DialOptions      []grpc.DialOption
 	Database         goservice_db.ServiceDatabase
 	Registry         goservice_registry.ServiceRegistry
-	Client           client.Client
+	ClientPool       pool.Pool
 	exit             chan os.Signal
 	*Gateway
 	*Config
@@ -56,13 +57,6 @@ func NewGrpc(opts ...Option) server.Server {
 		exit:          make(chan os.Signal),
 		Gateway:       NewGateway(),
 		Registry:      defaultRegistry,
-		Client: &client.GrpcClient{
-			Opts: &client.GrpcClientOptions{
-				Scheme:      "http",
-				Registry:    defaultRegistry,
-				DialOptions: []grpc.DialOption{grpc.WithInsecure()},
-			},
-		},
 	}
 
 	for _, opt := range opts {
@@ -74,6 +68,13 @@ func NewGrpc(opts ...Option) server.Server {
 	} else {
 		g.Mux = runtime.NewServeMux()
 	}
+
+	g.ClientPool = grpc_client.NewGrpcClientPool(
+		grpc_client.WithRegistry(g.Registry),
+		grpc_client.WithDialOptions(g.DialOptions...),
+		grpc_client.WithScheme("http"),
+		grpc_client.WithTTL(grpc_client.DefaultTTL),
+	)
 
 	return g
 }
@@ -118,10 +119,8 @@ func WithRegistry(registry goservice_registry.ServiceRegistry) Option {
 }
 
 // Client creates if not exists and returns the client to call the service
-func (g *Grpc) GetClient(name string) client.Client {
-	g.Client.Init(name)
-
-	return g.Client
+func (g *Grpc) GetClient(name string) (pool.Connection, error) {
+	return g.ClientPool.Get(name)
 }
 
 // Register registers the grpc server with the service registry
