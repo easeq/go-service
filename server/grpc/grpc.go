@@ -119,8 +119,17 @@ func WithRegistry(registry goservice_registry.ServiceRegistry) Option {
 }
 
 // Client creates if not exists and returns the client to call the service
-func (g *Grpc) GetClient(name string) (pool.Connection, error) {
-	return g.ClientPool.Get(name)
+func (g *Grpc) GetClient(client pool.Connection, name string) error {
+	if err := g.ClientPool.Init(name); err != nil {
+		return err
+	}
+
+	err := g.ClientPool.Get(client, name)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Register registers the grpc server with the service registry

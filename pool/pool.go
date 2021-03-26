@@ -1,9 +1,9 @@
 package pool
 
 type Pool interface {
-	Init(opts ...interface{}) error
+	Init(address string, opts ...interface{}) error
 	// Get connection
-	Get(address string, opts ...interface{}) (Connection, error)
+	Get(client Connection, address string) error
 	// Close the pool
 	Release(address string) error
 }

@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/easeq/go-service/pool"
@@ -12,11 +11,12 @@ import (
 
 const (
 	// DefaultTTL is the default value client connection ttl
-	DefaultTTL = time.Minute * 5
+	DefaultTTL = time.Minute
 )
 
 type Pool struct {
-	connections map[string]*GrpcClient
+	// pool.Pool
+	connections map[string]GrpcClient
 	ttl         time.Duration
 	Registry    registry.ServiceRegistry
 	DialOptions []grpc.DialOption
@@ -27,9 +27,16 @@ type Pool struct {
 type Option func(*Pool)
 
 func NewGrpcClientPool(opts ...Option) *Pool {
-	return &Pool{
-		ttl: DefaultTTL,
+	p := &Pool{
+		connections: make(map[string]GrpcClient),
+		ttl:         DefaultTTL,
 	}
+
+	for _, opt := range opts {
+		opt(p)
+	}
+
+	return p
 }
 
 // WithTTL defines a ttl for the pool
@@ -61,57 +68,40 @@ func WithScheme(scheme string) Option {
 }
 
 // Get creates or returns an existing gRPC client connection
-func (p *Pool) Get(address string, opts ...interface{}) (pool.Connection, error) {
-	if !p.isInitialized(address) {
-		err := p.Init(address)
-		if err != nil {
-			return nil, err
-		}
-	}
-
+func (p *Pool) Get(client pool.Connection, address string) error {
 	conn, ok := p.connections[address]
 	if !ok {
-		return nil, errors.New("Could not find the requested connection")
+		return errors.New("Could not find the requested connection")
 	}
 
-	return conn, nil
+	if val, ok := client.(*GrpcClient); ok {
+		*val = conn
+	}
+
+	return nil
 }
 
 // Init gRPC client
-func (p *Pool) Init(opts ...interface{}) error {
-	address := opts[0].(string)
-	if address == "" {
-		return errors.New("Invalid service address provided.")
-	}
-
-	if p.isInitialized(address) {
+func (p *Pool) Init(address string, opts ...interface{}) error {
+	// Check whether a connection exists in pool
+	if _, ok := p.connections[address]; ok {
 		// Refresh TTL timer if the connection is called before TTL deadline
 		p.connections[address].timer.Reset(DefaultTTL)
 		return nil
 	}
 
-	gc, err := NewGrpcClient(address, p.ttl, p.DialOptions...)
+	gc, err := NewGrpcClient(p, address, p.ttl, p.DialOptions...)
 	if err != nil {
 		return err
 	}
 
-	p.connections[address] = gc
+	p.connections[address] = *gc
 
 	return nil
 }
 
-// Return whether client has been intialized
-func (p *Pool) isInitialized(name string) bool {
-	_, ok := p.connections[name]
-	return ok
-}
-
 // Release - releases and existing connection
 func (p *Pool) Release(name string) error {
-	if !p.isInitialized(name) {
-		return fmt.Errorf("Connection does not exist in the pool")
-	}
-
-	defer delete(p.connections, name)
-	return p.connections[name].Close()
+	delete(p.connections, name)
+	return nil
 }

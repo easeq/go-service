@@ -2,27 +2,41 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/easeq/go-service/pool"
 	"google.golang.org/grpc"
 )
 
 type GrpcClient struct {
-	cc    *grpc.ClientConn
-	timer *time.Timer
+	address string
+	p       pool.Pool
+	cc      *grpc.ClientConn
+	timer   *time.Timer
 }
 
 // NewGrpcClient creates a new gRPC client connection
-func NewGrpcClient(address string, ttl time.Duration, opts ...grpc.DialOption) (*GrpcClient, error) {
+func NewGrpcClient(p pool.Pool, address string, ttl time.Duration, opts ...grpc.DialOption) (*GrpcClient, error) {
+	grpcPool, ok := p.(*Pool)
+	if !ok {
+		return nil, errors.New("gRPC connection failed")
+	}
+
 	// Get gRPC client connection
-	cc, err := grpc.Dial(address, opts...)
+	cc, err := grpc.Dial(grpcPool.Registry.ConnectionString(address, grpcPool.Scheme), opts...)
 	if err != nil {
 		return nil, fmt.Errorf("gRPC connection failed: %v", err)
 	}
 
 	// Create new gRPC client
-	gc := &GrpcClient{cc, time.NewTimer(ttl)}
+	gc := &GrpcClient{
+		address: address,
+		p:       p,
+		cc:      cc,
+		timer:   time.NewTimer(ttl),
+	}
 	go func() {
 		// Close connection after TTL
 		<-gc.timer.C
@@ -62,6 +76,9 @@ func (gc *GrpcClient) Close() error {
 	if gc.cc != nil && gc.cc.GetState().String() != "SHUTDOWN" {
 		return gc.cc.Close()
 	}
+
+	// Release connection from pool
+	gc.p.Release(gc.address)
 
 	return nil
 }
