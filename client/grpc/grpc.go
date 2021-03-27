@@ -40,7 +40,7 @@ func NewGrpcClient(p pool.Pool, address string, ttl time.Duration, opts ...grpc.
 	go func() {
 		// Close connection after TTL
 		<-gc.timer.C
-		gc.cc.Close()
+		gc.Close()
 	}()
 
 	return gc, nil
@@ -74,11 +74,10 @@ func (gc *GrpcClient) Call(
 // Close - closes the connection to the gRPC service server
 func (gc *GrpcClient) Close() error {
 	if gc.cc != nil && gc.cc.GetState().String() != "SHUTDOWN" {
+		// Release connection from pool
+		gc.p.Release(gc.address)
 		return gc.cc.Close()
 	}
-
-	// Release connection from pool
-	gc.p.Release(gc.address)
 
 	return nil
 }
