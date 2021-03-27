@@ -27,6 +27,11 @@ var (
 	ErrGRPCConfigLoad = errors.New("error loading grpc config")
 )
 
+const (
+	// maxBadClientConnRetries is the number of time to retry connecting to client quitting
+	maxBadClientConnRetries = 3
+)
+
 // ServiceRegistrar gRPC service registration func
 type ServiceRegistrar func(*grpc.Server, *Grpc)
 
@@ -118,8 +123,7 @@ func WithRegistry(registry goservice_registry.ServiceRegistry) Option {
 	}
 }
 
-// Client creates if not exists and returns the client to call the service
-func (g *Grpc) GetClient(client pool.Connection, name string) error {
+func (g *Grpc) getClientConn(client pool.Connection, name string) error {
 	if err := g.ClientPool.Init(name); err != nil {
 		return err
 	}
@@ -130,6 +134,19 @@ func (g *Grpc) GetClient(client pool.Connection, name string) error {
 	}
 
 	return nil
+}
+
+// Client creates if not exists and returns the client to call the service
+func (g *Grpc) GetClient(client pool.Connection, name string) error {
+	var err error
+	for i := 0; i < maxBadClientConnRetries; i++ {
+		err = g.getClientConn(client, name)
+		if err == nil {
+			break
+		}
+	}
+
+	return err
 }
 
 // Register registers the grpc server with the service registry
