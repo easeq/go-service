@@ -74,12 +74,7 @@ func NewGrpc(opts ...Option) server.Server {
 		g.Mux = runtime.NewServeMux()
 	}
 
-	g.ClientPool = grpc_client.NewGrpcClientPool(
-		grpc_client.WithRegistry(g.Registry),
-		grpc_client.WithDialOptions(g.DialOptions...),
-		grpc_client.WithScheme("http"),
-		grpc_client.WithTTL(grpc_client.DefaultTTL),
-	)
+	g.ClientPool = grpc_client.NewGrpcClientPool(10, grpc_client.NewGrpcClientConn)
 
 	return g
 }
@@ -124,14 +119,12 @@ func WithRegistry(registry goservice_registry.ServiceRegistry) Option {
 }
 
 func (g *Grpc) getClientConn(client pool.Connection, name string) error {
-	if err := g.ClientPool.Init(name); err != nil {
-		return err
-	}
-
-	err := g.ClientPool.Get(client, name)
+	conn, err := g.ClientPool.Get(name)
 	if err != nil {
 		return err
 	}
+
+	client = conn
 
 	return nil
 }

@@ -1,14 +1,23 @@
 package pool
 
+import "errors"
+
+var (
+	ErrConnectionClosed = errors.New("Connections closed")
+)
+
 type Pool interface {
-	Init(address string, opts ...interface{}) error
+	// Init(factory Factory) error
 	// Get connection
-	Get(client Connection, address string) error
+	Get(address string) (Connection, error)
 	// Close the pool
-	Release(address string) error
+	Close() error
 }
 
 type Connection interface {
 	// Close connection
 	Close() error
 }
+
+// Creates and returns a new connection
+type Factory func(args ...interface{}) (Connection, error)

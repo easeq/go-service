@@ -2,11 +2,10 @@ package grpc
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/easeq/go-service/pool"
-	"github.com/easeq/go-service/registry"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -14,94 +13,145 @@ const (
 	DefaultTTL = time.Minute
 )
 
+var (
+	// ErrGroupNotExist returned when the group hasn't been created
+	ErrGroupNotExist = errors.New("Group doesn't exist")
+	// ErrConnectionNotExists returned when the connection doesn't exist or has already been closed
+	ErrConnectionNotExists = errors.New("Connection doesn't exist")
+)
+
 type Pool struct {
-	// pool.Pool
-	connections map[string]GrpcClient
-	ttl         time.Duration
-	Registry    registry.ServiceRegistry
-	DialOptions []grpc.DialOption
-	Scheme      string
+	conns   map[string](chan pool.Connection)
+	factory pool.Factory
+	size    int
+	*sync.RWMutex
 }
 
-// Option to pass as arg while creating new service
-type Option func(*Pool)
-
-func NewGrpcClientPool(opts ...Option) *Pool {
-	p := &Pool{
-		connections: make(map[string]GrpcClient),
-		ttl:         DefaultTTL,
-	}
-
-	for _, opt := range opts {
-		opt(p)
-	}
-
-	return p
-}
-
-// WithTTL defines a ttl for the pool
-func WithTTL(ttl time.Duration) Option {
-	return func(p *Pool) {
-		p.ttl = ttl
+// NewGrpcClientPool - initiates a new grpc client pool
+func NewGrpcClientPool(size int, factory pool.Factory) *Pool {
+	return &Pool{
+		conns:   make(map[string](chan pool.Connection)),
+		factory: factory,
+		size:    size,
 	}
 }
 
-// WithRegistry defines the registry where the services are registered
-func WithRegistry(registry registry.ServiceRegistry) Option {
-	return func(p *Pool) {
-		p.Registry = registry
+// Creates a new connection channel group
+func (p *Pool) create(name string) error {
+	p.Lock()
+	defer p.Unlock()
+
+	if p.conns == nil {
+		return pool.ErrConnectionClosed
 	}
+
+	p.conns[name] = make(chan pool.Connection, p.size)
+	return nil
 }
 
-// WithDialOptions defines the gRPC dial options
-func WithDialOptions(opts ...grpc.DialOption) Option {
-	return func(p *Pool) {
-		p.DialOptions = opts
+// Get individual connection channel by name and the factory to create connection
+func (p *Pool) get(name string) (chan pool.Connection, pool.Factory, error) {
+	p.RLock()
+	defer p.RLock()
+
+	group, ok := p.conns[name]
+	if !ok {
+		return nil, p.factory, ErrGroupNotExist
 	}
+
+	return group, p.factory, nil
 }
 
-// WithScheme defines the gRPC service discovery scheme
-func WithScheme(scheme string) Option {
-	return func(p *Pool) {
-		p.Scheme = scheme
+// wraps a the connection provided in a standard pool.Connection
+func (p *Pool) wrap(address string, conn pool.Connection) pool.Connection {
+	gc := &GrpcClient{
+		p:       p,
+		address: address,
 	}
+	gc.Connection = conn
+	return gc
 }
 
 // Get creates or returns an existing gRPC client connection
-func (p *Pool) Get(client pool.Connection, address string) error {
-	conn, ok := p.connections[address]
-	if !ok {
-		return errors.New("Could not find the requested connection")
-	}
-
-	if val, ok := client.(*GrpcClient); ok {
-		*val = conn
-	}
-
-	return nil
-}
-
-// Init gRPC client
-func (p *Pool) Init(address string, opts ...interface{}) error {
-	// Check whether a connection exists in pool
-	if _, ok := p.connections[address]; ok {
-		// Refresh TTL timer if the connection is called before TTL deadline
-		p.connections[address].timer.Reset(DefaultTTL)
-		return nil
-	}
-
-	gc, err := NewGrpcClient(p, address, p.ttl, p.DialOptions...)
+func (p *Pool) Get(address string) (pool.Connection, error) {
+	conns, factory, err := p.get(address)
 	if err != nil {
-		return err
+		if err := p.create(address); err != nil {
+			return nil, err
+		}
 	}
 
-	p.connections[address] = *gc
+	if conns == nil {
+		return nil, pool.ErrConnectionClosed
+	}
 
-	return nil
+	select {
+	case conn := <-conns:
+		if conn == nil {
+			return nil, pool.ErrConnectionClosed
+		}
+
+		return p.wrap(address, conn), nil
+	default:
+		conn, err := factory(address)
+		if err != nil {
+			return nil, err
+		}
+
+		return p.wrap(address, conn), nil
+	}
 }
 
-// Release - releases and existing connection
-func (p *Pool) Release(name string) error {
-	delete(p.connections, name)
+func (p *Pool) add(address string, conn pool.Connection) error {
+	if conn == nil {
+		return ErrConnectionNotExists
+	}
+
+	p.RLock()
+	defer p.Unlock()
+
+	if p.conns == nil {
+		return conn.Close()
+	}
+
+	// add the connection to the pool or close the connection if the pool is full.
+	select {
+	case p.conns[address] <- conn:
+		return nil
+	default:
+		// Pool group full, close this connection
+		return conn.Close()
+	}
+}
+
+// Close - closes the connection pool and all it's channels
+func (p *Pool) Close() error {
+	p.Lock()
+	defer p.Unlock()
+
+	conns := p.conns
+	p.conns = nil
+	p.factory = nil
+
+	if conns == nil {
+		return pool.ErrConnectionClosed
+	}
+
+	for key, group := range conns {
+		if group == nil {
+			continue
+		}
+
+		// Close channel
+		close(conns[key])
+
+		for conn := range group {
+			// Close connection
+			if err := conn.Close(); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
