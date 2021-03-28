@@ -74,7 +74,12 @@ func NewGrpc(opts ...Option) server.Server {
 		g.Mux = runtime.NewServeMux()
 	}
 
-	g.ClientPool = grpc_client.NewGrpcClientPool(10, grpc_client.NewGrpcClientConn)
+	factory, err := grpc_client.NewGrpcClientConn(g.Registry, "http", g.DialOptions)
+	if err != nil {
+		panic("Invalid pool factory: " + err.Error())
+	}
+
+	g.ClientPool = grpc_client.NewGrpcClientPool(10, factory)
 
 	return g
 }
@@ -118,28 +123,26 @@ func WithRegistry(registry goservice_registry.ServiceRegistry) Option {
 	}
 }
 
-func (g *Grpc) getClientConn(client pool.Connection, name string) error {
+func (g *Grpc) getClientConn(name string) (pool.Connection, error) {
 	conn, err := g.ClientPool.Get(name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	client = conn
-
-	return nil
+	return conn, nil
 }
 
 // Client creates if not exists and returns the client to call the service
-func (g *Grpc) GetClient(client pool.Connection, name string) error {
+func (g *Grpc) GetClient(address string) (pool.Connection, error) {
 	var err error
 	for i := 0; i < maxBadClientConnRetries; i++ {
-		err = g.getClientConn(client, name)
+		conn, err := g.getClientConn(address)
 		if err == nil {
-			break
+			return conn, nil
 		}
 	}
 
-	return err
+	return nil, err
 }
 
 // Register registers the grpc server with the service registry
@@ -182,6 +185,9 @@ func (g *Grpc) Run(ctx context.Context) error {
 	signal.Notify(g.exit, os.Interrupt)
 	go func() {
 		for range g.exit {
+			log.Println("Closing grpc-client connections pool")
+			g.ClientPool.Close()
+
 			// sig is a ^C, handle it
 			log.Println("Closing DB connection")
 			g.Database.Close()

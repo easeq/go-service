@@ -2,15 +2,10 @@ package grpc
 
 import (
 	"errors"
+	"fmt"
 	"sync"
-	"time"
 
 	"github.com/easeq/go-service/pool"
-)
-
-const (
-	// DefaultTTL is the default value client connection ttl
-	DefaultTTL = time.Minute
 )
 
 var (
@@ -18,13 +13,15 @@ var (
 	ErrGroupNotExist = errors.New("Group doesn't exist")
 	// ErrConnectionNotExists returned when the connection doesn't exist or has already been closed
 	ErrConnectionNotExists = errors.New("Connection doesn't exist")
+	// ErrCouldNotAssignConnection when connection assignment fails
+	ErrCouldNotAssignConnection = errors.New("Assigning connection to gRPC client failed")
 )
 
 type Pool struct {
 	conns   map[string](chan pool.Connection)
 	factory pool.Factory
 	size    int
-	*sync.RWMutex
+	sync.RWMutex
 }
 
 // NewGrpcClientPool - initiates a new grpc client pool
@@ -37,22 +34,24 @@ func NewGrpcClientPool(size int, factory pool.Factory) *Pool {
 }
 
 // Creates a new connection channel group
-func (p *Pool) create(name string) error {
+func (p *Pool) create(name string) (chan pool.Connection, pool.Factory, error) {
 	p.Lock()
-	defer p.Unlock()
 
 	if p.conns == nil {
-		return pool.ErrConnectionClosed
+		return nil, nil, pool.ErrConnectionClosed
 	}
 
 	p.conns[name] = make(chan pool.Connection, p.size)
-	return nil
+
+	p.Unlock()
+
+	return p.get(name)
 }
 
 // Get individual connection channel by name and the factory to create connection
 func (p *Pool) get(name string) (chan pool.Connection, pool.Factory, error) {
 	p.RLock()
-	defer p.RLock()
+	defer p.RUnlock()
 
 	group, ok := p.conns[name]
 	if !ok {
@@ -76,19 +75,19 @@ func (p *Pool) wrap(address string, conn pool.Connection) pool.Connection {
 func (p *Pool) Get(address string) (pool.Connection, error) {
 	conns, factory, err := p.get(address)
 	if err != nil {
-		if err := p.create(address); err != nil {
+		if conns, factory, err = p.create(address); err != nil {
 			return nil, err
 		}
 	}
 
 	if conns == nil {
-		return nil, pool.ErrConnectionClosed
+		return nil, fmt.Errorf("%s-1", pool.ErrConnectionClosed)
 	}
 
 	select {
 	case conn := <-conns:
 		if conn == nil {
-			return nil, pool.ErrConnectionClosed
+			return nil, fmt.Errorf("%s-2", pool.ErrConnectionClosed)
 		}
 
 		return p.wrap(address, conn), nil
@@ -108,7 +107,7 @@ func (p *Pool) add(address string, conn pool.Connection) error {
 	}
 
 	p.RLock()
-	defer p.Unlock()
+	defer p.RUnlock()
 
 	if p.conns == nil {
 		return conn.Close()

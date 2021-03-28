@@ -7,7 +7,6 @@ var (
 )
 
 type Pool interface {
-	// Init(factory Factory) error
 	// Get connection
 	Get(address string) (Connection, error)
 	// Close the pool

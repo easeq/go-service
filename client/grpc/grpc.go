@@ -8,6 +8,7 @@ import (
 
 	"github.com/easeq/go-service/pool"
 	"github.com/easeq/go-service/registry"
+	"github.com/easeq/go-service/server"
 	"google.golang.org/grpc"
 )
 
@@ -23,43 +24,40 @@ var (
 	ErrInvalidRegistry = errors.New("Registry provided is invalid")
 	// ErrTooFewArgs returned when the args provided is less the args required
 	ErrTooFewArgs = errors.New("Too few arguments. Required 3")
+	// ErrTooFewArgs returned when the args provided is less the args required
+	ErrTooFewFactoryArgs = errors.New("Too few arguments for the factory. Required 1 address")
 	// ErrInvalidDialOptions returned when the dial options provided are not valid
 	ErrInvalidDialOptions = errors.New("Dial options provided are invalid")
+	// ErrInvalidGrpcClient returned when type assertion to GrpcClient fails
+	ErrInvalidGrpcClient = errors.New("Invalid GrpcClient")
 )
 
 type GrpcClient struct {
 	pool.Connection
 	address string
 	p       *Pool
-	*sync.RWMutex
-	// cc      *grpc.ClientConn
-	// timer   *time.Timer
+	sync.RWMutex
 }
 
 // NewGrpcClient creates and rea new gRPC client connection
-func NewGrpcClientConn(args ...interface{}) (pool.Connection, error) {
-	if len(args) < 3 {
+func NewGrpcClientConn(args ...interface{}) (pool.Factory, error) {
+	if len(args) < 2 {
 		return nil, ErrTooFewArgs
 	}
 
-	address, ok := args[0].(string)
-	if !ok {
-		return nil, ErrInvalidAddress
-	}
-
-	registry, ok := args[1].(registry.ServiceRegistry)
+	registry, ok := args[0].(registry.ServiceRegistry)
 	if !ok {
 		return nil, ErrInvalidRegistry
 	}
 
-	scheme, ok := args[2].(string)
+	scheme, ok := args[1].(string)
 	if !ok {
 		scheme = defaultScheme
 	}
 
 	opts := make([]grpc.DialOption, 0)
-	if len(args) == 4 {
-		dialOpts, ok := args[3].([]grpc.DialOption)
+	if len(args) == 3 {
+		dialOpts, ok := args[2].([]grpc.DialOption)
 		if !ok {
 			return nil, ErrInvalidDialOptions
 		}
@@ -67,12 +65,38 @@ func NewGrpcClientConn(args ...interface{}) (pool.Connection, error) {
 		opts = dialOpts
 	}
 
-	cc, err := grpc.Dial(registry.ConnectionString(address, scheme), opts...)
+	return func(args ...interface{}) (pool.Connection, error) {
+		if len(args) != 1 {
+			return nil, ErrTooFewFactoryArgs
+		}
+
+		address, ok := args[0].(string)
+		if !ok {
+			return nil, ErrInvalidAddress
+		}
+
+		cc, err := grpc.Dial(registry.ConnectionString(address, scheme), opts...)
+		if err != nil {
+			return nil, fmt.Errorf("gRPC connection failed: %v", err)
+		}
+
+		return cc, nil
+	}, nil
+}
+
+// Helper method to get GrpcClient
+func Get(server server.Server, name string) (*GrpcClient, error) {
+	conn, err := server.GetClient(name)
 	if err != nil {
-		return nil, fmt.Errorf("gRPC connection failed: %v", err)
+		return nil, err
 	}
 
-	return cc, nil
+	client, ok := conn.(*GrpcClient)
+	if !ok {
+		return nil, ErrInvalidGrpcClient
+	}
+
+	return client, nil
 }
 
 // Call - calls method on the connected gRPC client
@@ -104,12 +128,6 @@ func (gc *GrpcClient) Close() error {
 	if gc.Connection != nil {
 		return gc.Connection.Close()
 	}
-
-	// if gc.cc != nil && gc.cc.GetState().String() != "SHUTDOWN" {
-	// 	// Release connection from pool
-	// 	gc.p.Release(gc.address)
-	// 	return gc.cc.Close()
-	// }
 
 	return gc.p.add(gc.address, gc.Connection)
 }
