@@ -9,9 +9,10 @@ import (
 	"os/signal"
 
 	goconfig "github.com/easeq/go-config"
-	"github.com/easeq/go-service/client"
+	grpc_client "github.com/easeq/go-service/client/grpc"
 	"github.com/easeq/go-service/db"
 	goservice_db "github.com/easeq/go-service/db"
+	"github.com/easeq/go-service/pool"
 	"github.com/easeq/go-service/registry"
 	goservice_registry "github.com/easeq/go-service/registry"
 	"github.com/easeq/go-service/server"
@@ -26,6 +27,11 @@ var (
 	ErrGRPCConfigLoad = errors.New("error loading grpc config")
 )
 
+const (
+	// maxBadClientConnRetries is the number of time to retry connecting to client quitting
+	maxBadClientConnRetries = 3
+)
+
 // ServiceRegistrar gRPC service registration func
 type ServiceRegistrar func(*grpc.Server, *Grpc)
 
@@ -36,7 +42,7 @@ type Grpc struct {
 	DialOptions      []grpc.DialOption
 	Database         goservice_db.ServiceDatabase
 	Registry         goservice_registry.ServiceRegistry
-	Client           client.Client
+	ClientPool       pool.Pool
 	exit             chan os.Signal
 	*Gateway
 	*Config
@@ -56,13 +62,6 @@ func NewGrpc(opts ...Option) server.Server {
 		exit:          make(chan os.Signal),
 		Gateway:       NewGateway(),
 		Registry:      defaultRegistry,
-		Client: &client.GrpcClient{
-			Opts: &client.GrpcClientOptions{
-				Scheme:      "http",
-				Registry:    defaultRegistry,
-				DialOptions: []grpc.DialOption{grpc.WithInsecure()},
-			},
-		},
 	}
 
 	for _, opt := range opts {
@@ -74,6 +73,13 @@ func NewGrpc(opts ...Option) server.Server {
 	} else {
 		g.Mux = runtime.NewServeMux()
 	}
+
+	factory, err := grpc_client.NewGrpcClientConn(g.Registry, "http", g.DialOptions)
+	if err != nil {
+		panic("Invalid pool factory: " + err.Error())
+	}
+
+	g.ClientPool = grpc_client.NewGrpcClientPool(10, factory)
 
 	return g
 }
@@ -117,11 +123,26 @@ func WithRegistry(registry goservice_registry.ServiceRegistry) Option {
 	}
 }
 
-// Client creates if not exists and returns the client to call the service
-func (g *Grpc) GetClient(name string) client.Client {
-	g.Client.Init(name)
+func (g *Grpc) getClientConn(name string) (pool.Connection, error) {
+	conn, err := g.ClientPool.Get(name)
+	if err != nil {
+		return nil, err
+	}
 
-	return g.Client
+	return conn, nil
+}
+
+// Client creates if not exists and returns the client to call the service
+func (g *Grpc) GetClient(address string) (pool.Connection, error) {
+	var err error
+	for i := 0; i < maxBadClientConnRetries; i++ {
+		conn, err := g.getClientConn(address)
+		if err == nil {
+			return conn, nil
+		}
+	}
+
+	return nil, err
 }
 
 // Register registers the grpc server with the service registry
@@ -164,6 +185,9 @@ func (g *Grpc) Run(ctx context.Context) error {
 	signal.Notify(g.exit, os.Interrupt)
 	go func() {
 		for range g.exit {
+			log.Println("Closing grpc-client connections pool")
+			g.ClientPool.Close()
+
 			// sig is a ^C, handle it
 			log.Println("Closing DB connection")
 			g.Database.Close()
