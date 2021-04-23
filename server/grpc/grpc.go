@@ -10,7 +10,7 @@ import (
 
 	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/broker"
-	goservice_nats_streaming "github.com/easeq/go-service/broker/nats-streaming"
+	goservice_liftbridge "github.com/easeq/go-service/broker/liftbridge"
 	grpc_client "github.com/easeq/go-service/client/grpc"
 	"github.com/easeq/go-service/db"
 	goservice_db "github.com/easeq/go-service/db"
@@ -65,7 +65,7 @@ func NewGrpc(opts ...Option) server.Server {
 		exit:          make(chan os.Signal),
 		Gateway:       NewGateway(),
 		Registry:      defaultRegistry,
-		Broker:        goservice_nats_streaming.NewNatsStreaming(),
+		Broker:        goservice_liftbridge.NewLiftbridge(),
 	}
 
 	for _, opt := range opts {

@@ -1,4 +1,4 @@
-package nats_streaming
+package liftbridge
 
 import (
 	"github.com/Netflix/go-env"
@@ -6,10 +6,8 @@ import (
 )
 
 type Config struct {
-	// ClusterID is the name of your nats streaming cluster.
-	ClusterID string `env:"BROKER_NATS_STREAMING_CLUSTER_ID,default=test-cluster"`
-	// ClientID is the name given to your client
-	ClientID string `env:"BROKER_NATS_STREAMING_CLIENT_ID,default=go-service-ns-client"`
+	// Addrs contains the client addresses
+	Addrs []string `env:"BROKER_LIFTBRIDGE_ADDRESSES,default=localhost:9292"`
 }
 
 // GetConfig returns the DB config
