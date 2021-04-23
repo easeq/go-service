@@ -62,7 +62,7 @@ func (ns *NatsStreaming) Subscribe(subject string, handler broker.Handler, opts 
 }
 
 // Unsubscribe - unsubscribes from a given subject
-func (ns *NatsStreaming) Unsubscibe(subject string) error {
+func (ns *NatsStreaming) Unsubscribe(subject string) error {
 	sub, ok := ns.subscriptions[subject]
 	if !ok {
 		return fmt.Errorf("Invalid subscription subject: %s", subject)
@@ -72,6 +72,6 @@ func (ns *NatsStreaming) Unsubscibe(subject string) error {
 }
 
 // Close - closes an existing nats-streaming connection
-func (ns *NatsStreaming) Close() {
-	ns.conn.Close()
+func (ns *NatsStreaming) Close() error {
+	return ns.conn.Close()
 }
