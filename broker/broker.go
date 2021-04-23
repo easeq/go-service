@@ -7,6 +7,8 @@ type Message interface{}
 type Handler interface{}
 
 type Broker interface {
+	// Initialize
+	Init(ctx context.Context, args map[string]interface{}, opts ...interface{}) error
 	// Publish a message
 	Publish(ctx context.Context, subject string, message []byte) error
 	// Subscribe to a subject
