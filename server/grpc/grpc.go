@@ -9,6 +9,8 @@ import (
 	"os/signal"
 
 	goconfig "github.com/easeq/go-config"
+	"github.com/easeq/go-service/broker"
+	goservice_nats_streaming "github.com/easeq/go-service/broker/nats-streaming"
 	grpc_client "github.com/easeq/go-service/client/grpc"
 	"github.com/easeq/go-service/db"
 	goservice_db "github.com/easeq/go-service/db"
@@ -43,6 +45,7 @@ type Grpc struct {
 	Database         goservice_db.ServiceDatabase
 	Registry         goservice_registry.ServiceRegistry
 	ClientPool       pool.Pool
+	Broker           broker.Broker
 	exit             chan os.Signal
 	*Gateway
 	*Config
@@ -62,6 +65,7 @@ func NewGrpc(opts ...Option) server.Server {
 		exit:          make(chan os.Signal),
 		Gateway:       NewGateway(),
 		Registry:      defaultRegistry,
+		Broker:        goservice_nats_streaming.NewNatsStreaming(),
 	}
 
 	for _, opt := range opts {
@@ -120,6 +124,13 @@ func WithDatabase(database db.ServiceDatabase) Option {
 func WithRegistry(registry goservice_registry.ServiceRegistry) Option {
 	return func(g *Grpc) {
 		g.Registry = registry
+	}
+}
+
+// WithBroker passes the message broker externally
+func WithBroker(opts broker.Broker) Option {
+	return func(g *Grpc) {
+		g.Broker = opts
 	}
 }
 

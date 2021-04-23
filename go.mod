@@ -10,6 +10,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.14.1
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/lib/pq v1.9.0 // indirect
+	github.com/nats-io/stan.go v0.8.3 // indirect
 	google.golang.org/grpc v1.36.0
 	google.golang.org/protobuf v1.25.1-0.20200805231151-a709e31e5d12
 )
