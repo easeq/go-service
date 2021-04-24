@@ -15,18 +15,18 @@ type Liftbridge struct {
 }
 
 // NewPostgres returns new connection to the postgres db
-func NewLiftbridge(opts ...lift.ClientOption) broker.Broker {
+func NewLiftbridge(opts ...lift.ClientOption) (broker.Broker, error) {
 	cfg := GetConfig()
 
-	client, err := lift.Connect(cfg.Addrs, opts...)
+	client, err := lift.Connect(cfg.GetAddresses(), opts...)
 	if err != nil {
-		panic(fmt.Errorf("Error creating to liftbrige client -> %s", err))
+		return nil, fmt.Errorf("Error creating to liftbrige client -> %s", err)
 	}
 
 	return &Liftbridge{
 		client: client,
 		Config: cfg,
-	}
+	}, nil
 }
 
 // Initialize stream

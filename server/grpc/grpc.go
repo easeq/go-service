@@ -65,7 +65,6 @@ func NewGrpc(opts ...Option) server.Server {
 		exit:          make(chan os.Signal),
 		Gateway:       NewGateway(),
 		Registry:      defaultRegistry,
-		Broker:        goservice_liftbridge.NewLiftbridge(),
 	}
 
 	for _, opt := range opts {
@@ -76,6 +75,15 @@ func NewGrpc(opts ...Option) server.Server {
 		g.Mux = runtime.NewServeMux(g.MuxOptions...)
 	} else {
 		g.Mux = runtime.NewServeMux()
+	}
+
+	if g.Broker == nil {
+		broker, err := goservice_liftbridge.NewLiftbridge()
+		if err != nil {
+			log.Printf("Broker error -> %s", err)
+		}
+
+		g.Broker = broker
 	}
 
 	factory, err := grpc_client.NewGrpcClientConn(g.Registry, "http", g.DialOptions)
