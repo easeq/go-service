@@ -10,6 +10,7 @@ import (
 	"github.com/easeq/go-service/registry"
 	"github.com/easeq/go-service/server"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 const (
@@ -107,6 +108,13 @@ func (gc *GrpcClient) Call(
 	res interface{},
 	opts ...interface{},
 ) error {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		md = metadata.Pairs()
+	}
+
+	outCtx := metadata.NewOutgoingContext(ctx, md)
+
 	cc, ok := gc.Connection.(*grpc.ClientConn)
 	if !ok {
 		return fmt.Errorf("Invalid connection")
@@ -117,8 +125,12 @@ func (gc *GrpcClient) Call(
 		callOpts[i] = opt.(grpc.CallOption)
 	}
 
-	return cc.Invoke(ctx, method, req, res, callOpts...)
+	return cc.Invoke(outCtx, method, req, res, callOpts...)
 }
+
+// func (gc *GrpcClient) Stream() error {
+
+// }
 
 // Close - closes the connection to the gRPC service server
 func (gc *GrpcClient) Close() error {
