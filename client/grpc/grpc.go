@@ -108,6 +108,7 @@ func GetWithErrChan(server server.Server, name string, cErr chan error) *GrpcCli
 		return nil
 	}
 
+	cErr <- nil
 	return conn
 }
 
@@ -137,6 +138,24 @@ func (gc *GrpcClient) Call(
 	}
 
 	return cc.Invoke(outCtx, method, req, res, callOpts...)
+}
+
+// CallWithErrChan calls gRPC unary method with an error channel
+func (gc *GrpcClient) CallWithErrChan(
+	ctx context.Context,
+	method string,
+	req interface{},
+	res interface{},
+	cErr chan error,
+	opts ...interface{},
+) {
+	err := gc.Call(ctx, method, req, res, opts)
+	if err != nil {
+		cErr <- err
+		return
+	}
+
+	cErr <- nil
 }
 
 // func (gc *GrpcClient) Stream() error {
