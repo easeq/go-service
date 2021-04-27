@@ -100,6 +100,17 @@ func Get(server server.Server, name string) (*GrpcClient, error) {
 	return client, nil
 }
 
+// Helper method to add error directly to the error channel
+func GetWithErrChan(server server.Server, name string, cErr chan error) *GrpcClient {
+	conn, err := Get(server, name)
+	if err != nil {
+		cErr <- err
+		return nil
+	}
+
+	return conn
+}
+
 // Call - calls method on the connected gRPC client
 func (gc *GrpcClient) Call(
 	ctx context.Context,
