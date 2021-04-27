@@ -19,6 +19,11 @@ import (
 	goservice_registry "github.com/easeq/go-service/registry"
 	"github.com/easeq/go-service/server"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/opentracing/opentracing-go"
+	jaegercfg "github.com/uber/jaeger-client-go/config"
+	jaegerlog "github.com/uber/jaeger-client-go/log"
+	"github.com/uber/jaeger-lib/metrics"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -46,6 +51,7 @@ type Grpc struct {
 	Registry         goservice_registry.ServiceRegistry
 	ClientPool       pool.Pool
 	Broker           broker.Broker
+	Logger           *zap.Logger
 	exit             chan os.Signal
 	*Gateway
 	*Config
@@ -65,6 +71,7 @@ func NewGrpc(opts ...Option) server.Server {
 		exit:          make(chan os.Signal),
 		Gateway:       NewGateway(),
 		Registry:      defaultRegistry,
+		Logger:        GetLogger(),
 	}
 
 	for _, opt := range opts {
@@ -94,6 +101,17 @@ func NewGrpc(opts ...Option) server.Server {
 	g.ClientPool = grpc_client.NewGrpcClientPool(10, factory)
 
 	return g
+}
+
+// Get zap logger
+func GetLogger() *zap.Logger {
+	zapLogger, err := zap.NewProduction()
+	if err != nil {
+		log.Println("ZapLogger failed!")
+	}
+	defer zapLogger.Sync()
+
+	return zapLogger
 }
 
 // WithGrpcServerOptions adds gRPC options
@@ -225,4 +243,22 @@ func (g *Grpc) Run(ctx context.Context) error {
 	// start gRPC server
 	log.Println("Starting gRPC server...")
 	return server.Serve(listener)
+}
+
+func init() {
+	otCfg, err := jaegercfg.FromEnv()
+	if err != nil {
+		log.Println("Error setting up opentracing: ", err)
+	}
+
+	jLogger := jaegerlog.StdLogger
+	jMetricsFactory := metrics.NullFactory
+
+	tracer, _, err := otCfg.NewTracer(
+		jaegercfg.Logger(jLogger),
+		jaegercfg.Metrics(jMetricsFactory),
+	)
+
+	// TODO: find a place to add closer.Close() to avoid premature closing
+	opentracing.SetGlobalTracer(tracer)
 }
