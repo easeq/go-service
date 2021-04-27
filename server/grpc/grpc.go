@@ -71,7 +71,6 @@ func NewGrpc(opts ...Option) server.Server {
 		exit:          make(chan os.Signal),
 		Gateway:       NewGateway(),
 		Registry:      defaultRegistry,
-		Logger:        GetLogger(),
 	}
 
 	for _, opt := range opts {
