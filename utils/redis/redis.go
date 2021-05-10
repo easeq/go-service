@@ -21,13 +21,11 @@ func GetConfig() *Config {
 	return goconfig.NewEnvConfig(new(Config)).(*Config)
 }
 
-//
-func (r *Redis) Get(args ...interface{}) error {
-	r.Client = goredis.NewClient(&goredis.Options{
+// Get returns redis client connection
+func (r *Redis) Get() *goredis.Client {
+	return goredis.NewClient(&goredis.Options{
 		Addr:     r.Addr,
 		Password: r.Password,
 		DB:       r.DB,
 	})
-
-	return nil
 }
