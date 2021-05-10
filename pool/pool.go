@@ -3,7 +3,7 @@ package pool
 import "errors"
 
 var (
-	ErrConnectionClosed = errors.New("Connections closed")
+	ErrConnectionClosed = errors.New("connections closed")
 )
 
 type Pool interface {
@@ -19,4 +19,4 @@ type Connection interface {
 }
 
 // Creates and returns a new connection
-type Factory func(args ...interface{}) (Connection, error)
+type Factory func(address string, opts ...interface{}) (Connection, error)

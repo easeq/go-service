@@ -1,18 +1,17 @@
-package grpc
+package gateway
 
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"os/signal"
-	"strconv"
-	"time"
 
 	"github.com/easeq/go-redis-access-control/gateway"
+	"github.com/easeq/go-service/pool"
+	"github.com/easeq/go-service/registry"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"google.golang.org/protobuf/runtime/protoiface"
 )
 
 var (
@@ -26,11 +25,14 @@ var (
 	ErrCannotAddMuxOptionAtPos = errors.New("cannot add mux option at the position specified")
 )
 
+// Option to pass as arg while creating new service
+type Option func(*Gateway)
+
 // Middleware type
 type Middleware func(http.Handler) http.Handler
 
 // HTTPServiceHandlerRegistrar HTTP service handler registration func
-type HTTPServiceHandlerRegistrar func(context.Context, *Grpc) error
+type HTTPServiceHandlerRegistrar func(context.Context, *Gateway) error
 
 // Gateway handle gRPC gateway
 type Gateway struct {
@@ -38,96 +40,83 @@ type Gateway struct {
 	Middleware                  Middleware
 	HTTPServiceHandlerRegistrar HTTPServiceHandlerRegistrar
 	MuxOptions                  []runtime.ServeMuxOption
+	Server                      *http.Server
 	exit                        chan os.Signal
+	*Config
 }
 
 // NewGateway creates and returns gRPC-gateway
-func NewGateway() *Gateway {
-	return &Gateway{
+func NewGateway(opts ...Option) *Gateway {
+	g := &Gateway{
 		Mux:        runtime.NewServeMux(),
 		Middleware: gateway.Middleware,
 		MuxOptions: []runtime.ServeMuxOption{},
 		exit:       make(chan os.Signal),
 	}
+
+	for _, opt := range opts {
+		opt(g)
+	}
+
+	return g
 }
 
 // WithMuxOptions adds mux options
 func WithMuxOptions(opts ...runtime.ServeMuxOption) Option {
-	return func(g *Grpc) {
+	return func(g *Gateway) {
 		g.MuxOptions = opts
 	}
 }
 
 // WithMiddleware adds middleware to the rest handler
 func WithMiddleware(middleware Middleware) Option {
-	return func(g *Grpc) {
+	return func(g *Gateway) {
 		g.Middleware = middleware
 	}
 }
 
 // WithHTTPServiceHandlerRegistrar add HTTP service handle registration callback
 func WithHTTPServiceHandlerRegistrar(registrar HTTPServiceHandlerRegistrar) Option {
-	return func(g *Grpc) {
+	return func(g *Gateway) {
 		g.HTTPServiceHandlerRegistrar = registrar
 	}
 }
 
-// RedirectHandler gRPC metadata and redirect if redirection headers are set
-func RedirectHandler(ctx context.Context, w http.ResponseWriter, resp protoiface.MessageV1) error {
-	headers := w.Header()
-	if location, ok := headers["Grpc-Metadata-Location"]; ok {
-		w.Header().Set("Location", location[0])
+// Client creates if not exists and returns the client to call the service
+func (g *Gateway) GetClient(address string) (pool.Connection, error) {
+	// var err error
+	// for i := 0; i < maxBadClientConnRetries; i++ {
+	// 	conn, err := g.getClientConn(address)
+	// 	if err == nil {
+	// 		return conn, nil
+	// 	}
+	// }
 
-		if code, ok := headers["Grpc-Metadata-Code"]; ok {
-			codeInt, err := strconv.Atoi(code[0])
-			if err != nil {
-				return err
-			}
+	// return nil, err
+	return nil, fmt.Errorf("No avaialable client")
+}
 
-			w.WriteHeader(codeInt)
-		} else {
-			w.WriteHeader(http.StatusFound)
-		}
-	}
-
-	return nil
+// Register registers the grpc server with the service registry
+func (g *Gateway) Register(
+	ctx context.Context,
+	name string,
+	registry registry.ServiceRegistry,
+) *registry.ErrRegistryRegFailed {
+	return registry.Register(ctx, name, g.Host, g.Port, g.GetTags()...)
 }
 
 // Run runs the HTTP server
-func (g *Gateway) Run(ctx context.Context, grpc *Grpc) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	if g.HTTPServiceHandlerRegistrar == nil {
-		log.Println("gRPC running without gateway")
-		return nil
-	}
-
-	err := g.HTTPServiceHandlerRegistrar(ctx, grpc)
-	if err != nil {
-		return ErrHTTPServiceHandlerRegFailed
-	}
-
-	srv := &http.Server{
-		Addr:    grpc.HTTPAddress(),
+func (g *Gateway) Run(ctx context.Context) error {
+	g.Server = &http.Server{
+		Addr:    g.Address(),
 		Handler: g.Middleware(g.Mux),
 	}
 
-	// Graceful shutdown
-	signal.Notify(g.exit, os.Interrupt)
-	go func() {
-		for range g.exit {
-			// sig is a ^C, handle it
-			log.Println("Shutting down HTTP server...")
-			srv.Shutdown(ctx)
-		}
-
-		_, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-
-		srv.Shutdown(ctx)
-	}()
-
 	log.Println("starting HTTP/REST gateway...")
-	return srv.ListenAndServe()
+	return g.Server.ListenAndServe()
+}
+
+// Shutdown HTTP server
+func (g *Gateway) ShutDown(ctx context.Context) error {
+	return g.Server.Shutdown(ctx)
 }

@@ -13,6 +13,7 @@ func (e *ErrDatabaseSetup) Error() string {
 
 // ServiceDatabase interface for database
 type ServiceDatabase interface {
+	Init() error
 	// Setup database
 	Setup() *ErrDatabaseSetup
 	// Migrate database schema

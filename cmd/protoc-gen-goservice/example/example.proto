@@ -1,0 +1,55 @@
+syntax = "proto3";
+package v1;
+
+option go_package = "./;v1";
+
+// Service to manager shopify auth
+service ShopifyService {
+    // Shopify oauth
+    rpc Auth(ShopifyAuthRequest) returns (Response){}
+
+    rpc NoReturn(ShopifyAuthRequest) returns(Empty) {}
+
+    // Shopify after auth callback
+    rpc AuthCallback(ShopifyAuthCallbackRequest) returns (Response) {}
+
+    // Shopify data sync request stream server
+    rpc DataSync(ShopifyDataSyncRequest) returns (stream ShopifyDataSyncResponse) {}
+
+    // Shopify data sync request steam client
+    rpc DataSyncStreamClient(stream ShopifyDataSyncRequest) returns (ShopifyDataSyncResponse) {}
+
+    // Shopify data sync request stream bi-directional
+    rpc DataSyncStreamBiDirectional(stream ShopifyDataSyncRequest) returns (stream ShopifyDataSyncResponse) {}
+}
+
+message ShopifyAuthRequest{
+    // Name of the shop
+    string shop = 1;
+}
+
+// Contains successful or failed login attempt
+message Response{
+    // Success response
+    bool success = 1;
+}
+
+message ShopifyAuthCallbackRequest{
+    // Name of the shop
+    string shop = 1;
+    // Authorization code sent from Shopify
+    string code = 2;
+    // HMAC signature to make sure everything was sent by shopify
+    string hmac = 3;
+    // Timestamp sent by Shopify
+    int32 timestamp = 4;
+}
+
+message ShopifyDataSyncRequest{}
+
+message ShopifyDataSyncResponse{
+    // Products
+    string result = 1; 
+}
+
+message Empty{}

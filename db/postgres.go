@@ -54,7 +54,7 @@ func newConnection(uri string) *sql.DB {
 }
 
 // NewPostgres returns new connection to the postgres db
-func NewPostgres() ServiceDatabase {
+func NewPostgres() *Postgres {
 	cfg := GetConfig()
 
 	return &Postgres{
@@ -66,6 +66,26 @@ func NewPostgres() ServiceDatabase {
 // GetConfig returns the DB config
 func GetConfig() *Config {
 	return goconfig.NewEnvConfig(new(Config)).(*Config)
+}
+
+// Initialize database
+func (db *Postgres) Init() error {
+	if err := db.Setup(); err != nil {
+		log.Printf("Database setup err -> %s", err)
+	}
+
+	// if err := db.UpdateHandle(); err != nil {
+	// 	return err
+	// }
+
+	// defer db.Close()
+
+	// Run migrations
+	if err := db.Migrate(); err != nil {
+		log.Println(err)
+	}
+
+	return nil
 }
 
 // Setup creates a database, a user and assigns the created user to the database

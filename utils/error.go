@@ -30,8 +30,12 @@ func MergeErrors(cs ...<-chan error) <-chan error {
 		wg.Done()
 	}
 
-	wg.Add(len(cs))
 	for _, c := range cs {
+		if c == nil {
+			continue
+		}
+
+		wg.Add(1)
 		go output(c)
 	}
 
