@@ -1,0 +1,23 @@
+syntax = "proto3";
+package v1;
+
+option go_package = "./;v1";
+
+// Service to manager shopify auth
+service ExampleService {
+    rpc Unary(Request) returns (Response){}
+    rpc NoReturn(Request) returns(Empty) {}
+    rpc ServerStream(Request) returns (stream Response) {}
+    rpc ClientStream(stream Request) returns (Response) {}
+    rpc BiDirectionalStream(stream Request) returns (stream Response) {}
+}
+
+message Request{
+    string arg = 1;
+}
+
+message Response{
+    bool success = 1;
+}
+
+message Empty{}
