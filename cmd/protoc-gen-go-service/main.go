@@ -95,7 +95,19 @@ func main() {
 
 func run(gen *protogen.Plugin) error {
 	for _, f := range gen.Files {
-		if !f.Generate {
+		if !f.Generate || len(f.Services) == 0 {
+			continue
+		}
+
+		skip := true
+		for _, service := range f.Services {
+			if len(service.Methods) != 0 {
+				skip = false
+				break
+			}
+		}
+
+		if skip {
 			continue
 		}
 
@@ -138,12 +150,6 @@ func generateFile(gen *protogen.Plugin, file *protogen.File) *protogen.Generated
 	}
 
 	g.P(result.String())
-
-	// for _, service := range file.Services {
-	// 	for _, method := range service.Methods {
-	// 		log.Println(method.Location)
-	// 	}
-	// }
 
 	return g
 }
