@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 
+	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-redis-access-control/gateway"
 	"github.com/easeq/go-service/pool"
 	"github.com/easeq/go-service/registry"
@@ -51,6 +52,7 @@ func NewGateway(opts ...Option) *Gateway {
 		Mux:        runtime.NewServeMux(),
 		Middleware: gateway.Middleware,
 		MuxOptions: []runtime.ServeMuxOption{},
+		Config:     goconfig.NewEnvConfig(new(Config)).(*Config),
 		exit:       make(chan os.Signal),
 	}
 

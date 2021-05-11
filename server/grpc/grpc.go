@@ -26,21 +26,10 @@ var (
 	ErrGRPCConfigLoad = errors.New("error loading grpc config")
 )
 
-const (
-	// maxBadClientConnRetries is the number of time to retry connecting to client quitting
-	maxBadClientConnRetries = 3
-)
-
-// ServiceRegistrar gRPC service registration func
-type ServiceRegistrar func(*grpc.Server, *Grpc)
-
 // Grpc holds gRPC config
 type Grpc struct {
 	ServerOptions []grpc.ServerOption
-	// ServiceRegistrar ServiceRegistrar
-	DialOptions []grpc.DialOption
-	// Database         goservice_db.ServiceDatabase
-	// ClientPool pool.Pool
+	DialOptions   []grpc.DialOption
 	// Broker     broker.Broker
 	Logger *zap.Logger
 	Server *grpc.Server
@@ -57,8 +46,7 @@ func NewGrpc(opts ...Option) *Grpc {
 		DialOptions:   []grpc.DialOption{grpc.WithInsecure()},
 		ServerOptions: []grpc.ServerOption{},
 		Config:        goconfig.NewEnvConfig(new(Config)).(*Config),
-		// Database:      goservice_db.NewPostgres(),
-		exit: make(chan os.Signal),
+		exit:          make(chan os.Signal),
 	}
 
 	for _, opt := range opts {
@@ -94,17 +82,6 @@ func WithGRPCDialOptions(opts ...grpc.DialOption) Option {
 		g.DialOptions = opts
 	}
 }
-
-// // WithDatabase passes databases externally
-// func WithDatabase(database db.ServiceDatabase) Option {
-// 	return func(g *Grpc) {
-// 		if g.Database != nil {
-// 			g.Database.Close()
-// 		}
-
-// 		g.Database = database
-// 	}
-// }
 
 // WithBroker passes the message broker externally
 // func WithBroker(opts broker.Broker) Option {
