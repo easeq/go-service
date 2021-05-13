@@ -99,8 +99,8 @@ github.com/docker/go-units v0.4.0 h1:3uh0PgVws3nIA0Q+MwDC8yjEPf9zjRfZZWXZYDct3Tw
 github.com/docker/go-units v0.4.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/easeq/go-config v0.0.2 h1:VlPUc1cpdy8XT8aaTFdfP3Y1VtrTkAh+7rir/VAxEUo=
 github.com/easeq/go-config v0.0.2/go.mod h1:XZFx3/z70kUiBGcv5z9hou7pInOzon3EhHWrBP1iJVE=
-github.com/easeq/go-consul-registry/v2 v2.0.2-0.20210217115451-072394efe7e1 h1:n6YE6WzVii9TJbma50U/1HYaly6P/uCRR+0wRrnKE+s=
-github.com/easeq/go-consul-registry/v2 v2.0.2-0.20210217115451-072394efe7e1/go.mod h1:eN5UrMei87m/vukfTjv5Bx8PB6Wp3snfqYdzDCNs3eE=
+github.com/easeq/go-consul-registry/v2 v2.0.2-0.20210513113717-eab4959d405c h1:hOm9M7rgfFtMhQaASdBuocIZuwUSSNYQZHBk7A26ZMQ=
+github.com/easeq/go-consul-registry/v2 v2.0.2-0.20210513113717-eab4959d405c/go.mod h1:eN5UrMei87m/vukfTjv5Bx8PB6Wp3snfqYdzDCNs3eE=
 github.com/easeq/go-redis-access-control v0.0.6 h1:lDa0hUhcAstkmTZuo0yf9N3BL7BOgcuiO9Wa6NDw33A=
 github.com/easeq/go-redis-access-control v0.0.6/go.mod h1:Ff+ujq9V0y1gXc9v7g462OHDQesTMiyaSOWTMB7KaRg=
 github.com/edsrzf/mmap-go v0.0.0-20170320065105-0bce6a688712/go.mod h1:YO35OhQPt3KJa3ryjFM5Bs14WD66h8eGKpfaBNrHW5M=

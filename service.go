@@ -121,18 +121,15 @@ func (s *Service) Run(ctx context.Context) error {
 		}
 	}
 
-	if s.Server != nil {
-		if err := s.Server.Run(ctx); err != nil {
-			return err
-		}
-
-		if s.Registry == nil {
-			return nil
-		}
-
+	if s.Server != nil && s.Registry != nil {
 		if err := s.Server.Register(ctx, s.Name, s.Registry); err != nil {
 			return err
 		}
+	}
+
+	err := s.Server.Run(ctx)
+	if err != nil {
+		return err
 	}
 
 	s.ShutDown(ctx)
