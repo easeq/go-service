@@ -6,7 +6,7 @@ require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.0 // indirect
 	github.com/Netflix/go-env v0.0.0-20210215222557-e437a7e7f9fb
 	github.com/easeq/go-config v0.0.2
-	github.com/easeq/go-consul-registry/v2 v2.0.2-0.20210430040130-1f5185a51616
+	github.com/easeq/go-consul-registry/v2 v2.0.2-0.20210217115451-072394efe7e1
 	github.com/easeq/go-redis-access-control v0.0.6
 	github.com/go-redis/redis/v8 v8.6.0
 	github.com/golang-migrate/migrate/v4 v4.14.1

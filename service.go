@@ -12,7 +12,6 @@ import (
 	"github.com/easeq/go-service/db"
 	"github.com/easeq/go-service/registry"
 	"github.com/easeq/go-service/server"
-	"github.com/easeq/go-service/utils"
 )
 
 // ServiceConfig handles config required by the service
@@ -88,51 +87,6 @@ func WithClient(client client.Client) ServiceOption {
 // 	}
 // }
 
-// Register service at service registry
-func (s *Service) Register(ctx context.Context) <-chan error {
-	if s.Registry == nil {
-		return nil
-	}
-
-	cErr := make(chan error, 1)
-	go func() {
-		defer close(cErr)
-		cErr <- s.Server.Register(ctx, s.Name, s.Registry)
-	}()
-
-	return cErr
-}
-
-// Initialize database
-func (s *Service) InitDatabase() <-chan error {
-	if s.Database == nil {
-		return nil
-	}
-
-	cErr := make(chan error, 1)
-	go func() {
-		defer close(cErr)
-		cErr <- s.Database.Init()
-	}()
-
-	return cErr
-}
-
-// Start server
-func (s *Service) RunServer(ctx context.Context) <-chan error {
-	if s.Server == nil {
-		return nil
-	}
-
-	cErr := make(chan error, 1)
-	go func() {
-		defer close(cErr)
-		cErr <- s.Server.Run(ctx)
-	}()
-
-	return cErr
-}
-
 // Shutdown service and all the connections
 func (s *Service) ShutDown(ctx context.Context) {
 	// graceful shutdown
@@ -161,15 +115,19 @@ func (s *Service) ShutDown(ctx context.Context) {
 
 // Run runs both the HTTP and gRPC server
 func (s *Service) Run(ctx context.Context) error {
-	// Register service with service registry
-	cRegisterErr := s.Register(ctx)
-	// Initialize database
-	cInitDBErr := s.InitDatabase()
-	// Run server
-	cRunServerErr := s.RunServer(ctx)
-	// Shutdown service and all its connections
+	if err := s.Server.Register(ctx, s.Name, s.Registry); err != nil {
+		return err
+	}
+
+	if err := s.Database.Init(); err != nil {
+		return err
+	}
+
+	if err := s.Server.Run(ctx); err != nil {
+		return err
+	}
+
 	s.ShutDown(ctx)
 
-	// Exit on error
-	return utils.WaitForError(cRegisterErr, cInitDBErr, cRunServerErr)
+	return nil
 }
