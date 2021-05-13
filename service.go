@@ -115,16 +115,24 @@ func (s *Service) ShutDown(ctx context.Context) {
 
 // Run runs both the HTTP and gRPC server
 func (s *Service) Run(ctx context.Context) error {
-	if err := s.Server.Register(ctx, s.Name, s.Registry); err != nil {
-		return err
+	if s.Database != nil {
+		if err := s.Database.Init(); err != nil {
+			return err
+		}
 	}
 
-	if err := s.Database.Init(); err != nil {
-		return err
-	}
+	if s.Server != nil {
+		if err := s.Server.Run(ctx); err != nil {
+			return err
+		}
 
-	if err := s.Server.Run(ctx); err != nil {
-		return err
+		if s.Registry == nil {
+			return nil
+		}
+
+		if err := s.Server.Register(ctx, s.Name, s.Registry); err != nil {
+			return err
+		}
 	}
 
 	s.ShutDown(ctx)
