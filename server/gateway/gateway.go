@@ -26,6 +26,10 @@ var (
 	ErrCannotAddMuxOptionAtPos = errors.New("cannot add mux option at the position specified")
 )
 
+const (
+	SERVER_TYPE = "gateway"
+)
+
 // Option to pass as arg while creating new service
 type Option func(*Gateway)
 
@@ -95,7 +99,7 @@ func (g *Gateway) GetClient(address string) (pool.Connection, error) {
 	// }
 
 	// return nil, err
-	return nil, fmt.Errorf("No avaialable client")
+	return nil, fmt.Errorf("no avaialable client")
 }
 
 // Register registers the grpc server with the service registry
@@ -118,7 +122,12 @@ func (g *Gateway) Run(ctx context.Context) error {
 	return g.Server.ListenAndServe()
 }
 
-// Shutdown HTTP server
+// Shutdown - gracefully stops the server
 func (g *Gateway) ShutDown(ctx context.Context) error {
 	return g.Server.Shutdown(ctx)
+}
+
+// String - Returns the type of the server
+func (g *Gateway) String() string {
+	return SERVER_TYPE
 }

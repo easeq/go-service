@@ -1,12 +1,22 @@
 syntax = "proto3";
 package v1;
 
-option go_package = "./;v1";
+option go_package = "./;example";
+
+import "google/protobuf/empty.proto";
+import "options/annotations.proto";
 
 // Service to manager shopify auth
 service ExampleService {
+    option(go.service.protoc_gen_go_service.options.registry_tag) = {
+        name: "service-name-unique" // chekc env var first, if not set, then use the string used here
+        host: "BASE_URL" // env variable to use,
+        path: "/your/path/with/or/without/prefix"
+        stripprefix: "/your/prefix/path" 
+    };
+
     rpc Unary(Request) returns (Response){}
-    rpc NoReturn(Request) returns(Empty) {}
+    rpc NoReturn(google.protobuf.Empty) returns(google.protobuf.Empty) {}
     rpc ServerStream(Request) returns (stream Response) {}
     rpc ClientStream(stream Request) returns (Response) {}
     rpc BiDirectionalStream(stream Request) returns (stream Response) {}

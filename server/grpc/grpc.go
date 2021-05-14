@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 
 	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/pool"
@@ -24,6 +25,10 @@ var (
 	ErrRequiredGRPCRegistrar = errors.New("gRPC registration callback is required")
 	// ErrGRPCConfigLoad returned when env config for GRPC results in an error
 	ErrGRPCConfigLoad = errors.New("error loading grpc config")
+)
+
+const (
+	SERVER_TYPE = "grpc"
 )
 
 // Grpc holds gRPC config
@@ -136,9 +141,20 @@ func (g *Grpc) Run(ctx context.Context) error {
 	return server.Serve(listener)
 }
 
+// Shutdown - gracefully stops the server
 func (g *Grpc) ShutDown(ctx context.Context) error {
 	g.Server.GracefulStop()
 	return nil
+}
+
+// SetRegistryTags - sets the registry tags for the server
+func (g *Grpc) SetRegistryTags(tags ...string) {
+	g.Config.Tags = strings.Join(tags, ",")
+}
+
+// String - Returns the type of the server
+func (g *Grpc) String() string {
+	return SERVER_TYPE
 }
 
 func init() {
