@@ -25,6 +25,7 @@ import (
 {{range .Services}}
 {{$serviceName := .GoName}}
 {{$serviceNameCamel := (camelCase $serviceName)}}
+{{$serviceFullName := .Desc.FullName}}
 type {{$serviceName}}GSClient interface {
 	{{range .Methods -}}
 	{{if and (not .Desc.IsStreamingServer) (not .Desc.IsStreamingClient) -}}
@@ -60,7 +61,7 @@ func (sc *{{$serviceNameCamel}}GSClient) GetDialOptions() []client.DialOption {
 {{if and (not .Desc.IsStreamingServer) (not .Desc.IsStreamingClient)}}
 func (sc *{{$serviceNameCamel}}GSClient) {{$methodName}}(ctx context.Context, in *{{$inputName}}, opts ...client.CallOption) (*{{$outputName}}, error) {
 	res := new({{$outputName}})
-	err := sc.Call(ctx, sc, "/{{$pkg}}.{{$serviceName}}/{{$methodName}}", in, res, opts...)
+	err := sc.Call(ctx, sc, "/{{$serviceFullName}}/{{$methodName}}", in, res, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +70,7 @@ func (sc *{{$serviceNameCamel}}GSClient) {{$methodName}}(ctx context.Context, in
 }
 {{else}}
 func (sc *{{$serviceNameCamel}}GSClient) {{$methodName}}(ctx context.Context, in *{{$inputName}}, opts ...client.CallOption) (client.StreamClient, error) {
-	stream, err := sc.Stream(ctx, sc, &_{{$serviceName}}_serviceDesc.Streams[{{index $streams (printf "%s%s" .Parent.GoName .GoName)}}], "/{{$pkg}}.{{$serviceName}}/{{$methodName}}", in, opts...)
+	stream, err := sc.Stream(ctx, sc, &_{{$serviceName}}_serviceDesc.Streams[{{index $streams (printf "%s%s" .Parent.GoName .GoName)}}], "/{{$serviceFullName}}/{{$methodName}}", in, opts...)
 	if err != nil {
 		return nil, err
 	}

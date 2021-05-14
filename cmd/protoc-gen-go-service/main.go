@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	// "github.com/easeq/go-service/cmd/protoc-gen-go-service/options"
 	gs_generator "github.com/easeq/go-service/cmd/protoc-gen-go-service/generator"
@@ -28,6 +29,8 @@ func run(gen *protogen.Plugin) error {
 			if len(service.Methods) != 0 {
 				skip = false
 			}
+
+			log.Println(service)
 
 			// Get service registry tags for traefik
 			opts := service.Desc.Options()
