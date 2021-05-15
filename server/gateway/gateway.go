@@ -135,5 +135,8 @@ func (g *Gateway) String() string {
 
 // AddRegistryTags - sets the registry tags for the server
 func (g *Gateway) AddRegistryTags(tags ...string) {
-	g.Config.Tags += registry.TAGS_SEPARATOR + strings.Join(tags, registry.TAGS_SEPARATOR)
+	g.Config.Tags = strings.Join(
+		append(g.Config.GetTags(), tags...),
+		registry.TAGS_SEPARATOR,
+	)
 }

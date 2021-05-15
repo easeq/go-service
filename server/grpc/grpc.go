@@ -149,7 +149,10 @@ func (g *Grpc) ShutDown(ctx context.Context) error {
 
 // AddRegistryTags - sets the registry tags for the server
 func (g *Grpc) AddRegistryTags(tags ...string) {
-	g.Config.Tags += registry.TAGS_SEPARATOR + strings.Join(tags, registry.TAGS_SEPARATOR)
+	g.Config.Tags = strings.Join(
+		append(g.Config.GetTags(), tags...),
+		registry.TAGS_SEPARATOR,
+	)
 }
 
 // String - Returns the type of the server
