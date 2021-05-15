@@ -15,7 +15,7 @@ type Server interface {
 	// Client creates if not exists and returns the client to call the service
 	GetClient(address string) (pool.Connection, error)
 	// SetTags sets the registry tags for the server
-	SetTags(tags ...string)
+	SetRegistryTags(tags ...string)
 	// Get string identifier of the server
 	String() string
 	// Method to shut down server
