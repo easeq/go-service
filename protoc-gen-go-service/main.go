@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	// "github.com/easeq/go-service/cmd/protoc-gen-go-service/options"
-	gs_generator "github.com/easeq/go-service/cmd/protoc-gen-go-service/generator"
 	"github.com/easeq/go-service/cmd/protoc-gen-go-service/options"
+	gs_generator "github.com/easeq/go-service/protoc-gen-go-service/generator"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 )

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"html/template"
 
-	"github.com/easeq/go-service/cmd/protoc-gen-go-service/options"
+	"github.com/easeq/go-service/protoc-gen-go-service/options"
 	"github.com/iancoleman/strcase"
 	"google.golang.org/protobuf/compiler/protogen"
 )
