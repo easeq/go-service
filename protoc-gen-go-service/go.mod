@@ -1,4 +1,4 @@
-module github.com/easeq/go-service/cmd/protoc-gen-go-service
+module github.com/easeq/go-service/protoc-gen-go-service
 
 go 1.16
 
