@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package go.service.protoc_gen_go_service.options;
 
-option go_package = "../options";
+option go_package = "github.com/easeq/go-service/cmd/protoc-gen-go-service/options";
 
 import "google/protobuf/descriptor.proto";
 
