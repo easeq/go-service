@@ -29,5 +29,9 @@ func (c *Config) Address() string {
 
 // Consul tags
 func (c *Config) GetTags() []string {
+	if c.Tags == "" {
+		return []string{}
+	}
+
 	return strings.Split(c.Tags, registry.TAGS_SEPARATOR)
 }
