@@ -15,8 +15,9 @@ type Generator struct {
 	GoImportPath   protogen.GoImportPath
 	Gen            *protogen.Plugin
 	Streams        map[string]int
-	RegistryTags   []*options.RegistryTag
+	RegistryTags   map[string]*options.RegistryTag
 	Services       []*protogen.Service
+	Imports        map[string]bool
 }
 
 // generateFile generates a _ascii.pb.go file containing gRPC service definitions.

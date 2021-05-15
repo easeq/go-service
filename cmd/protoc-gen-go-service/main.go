@@ -22,21 +22,13 @@ func run(gen *protogen.Plugin) error {
 
 		skip := true
 		ss := make(map[string]int)
-		registryTags := []*options.RegistryTag{}
+		registryTags := map[string]*options.RegistryTag{}
+		imports := make(map[string]bool)
 		for _, service := range f.Services {
 			// Skip file generation if there are no methods
 			if len(service.Methods) != 0 {
 				skip = false
 			}
-
-			// Get service registry tags for traefik
-			opts := service.Desc.Options()
-			tags := proto.GetExtension(opts, options.E_RegistryTag)
-			registryTag, ok := tags.(*options.RegistryTag)
-			if !ok {
-				panic("Invalid registry tags")
-			}
-			registryTags = append(registryTags, registryTag)
 
 			// Create a streaming service index map
 			index := 0
@@ -46,6 +38,22 @@ func run(gen *protogen.Plugin) error {
 					index++
 				}
 			}
+
+			// Get service registry tags for traefik
+			opts := service.Desc.Options()
+			if !opts.ProtoReflect().IsValid() {
+				continue
+			}
+
+			tags := proto.GetExtension(opts, options.E_RegistryTag)
+			registryTag, ok := tags.(*options.RegistryTag)
+			if !ok {
+				panic("Invalid registry tags")
+			}
+
+			registryTags[service.GoName] = registryTag
+			imports["os"] = true
+			imports["github.com/easeq/go-service/server"] = true
 		}
 
 		if skip {
@@ -60,6 +68,7 @@ func run(gen *protogen.Plugin) error {
 			Streams:        ss,
 			RegistryTags:   registryTags,
 			Services:       f.Services,
+			Imports:        imports,
 		}
 		generator.GenerateFile()
 	}

@@ -13,10 +13,11 @@ package {{.GoPackageName}}
 
 import (
 	"context"
-	"os"
 
 	"github.com/easeq/go-service/client"
-	"github.com/easeq/go-service/server"
+	{{range $import, $val := .Imports -}}
+	"{{$import}}"
+	{{end}}
 )
 
 {{$pkg := .GoPackageName}}
@@ -45,6 +46,7 @@ type {{$serviceNameCamel}}GSClient struct {
 func New{{$serviceName}}GSClient(name string, client client.Client, opts ...client.DialOption) {{$serviceName}}GSClient {
 	return &{{$serviceNameCamel}}GSClient{name, opts, client}
 }
+
 
 func (sc *{{$serviceNameCamel}}GSClient) GetServiceName() string {
 	return sc.name
@@ -81,15 +83,14 @@ func (sc *{{$serviceNameCamel}}GSClient) {{$methodName}}(ctx context.Context, in
 {{end}}
 {{end}}
 
-// Add the tags to the registry
-func AddRegistryTags(server server.Server) {
+{{range $serviceName, $tag := .RegistryTags -}}
+{{if $tag}}
+func Add{{$serviceName}}ServerRegistryTags(server server.Server) {
 	tags := []string{
-		{{range .RegistryTags -}}
-		"traefik.http.routers.{{.Name}}.rule=Host(` + "`" + `" + os.Getenv("{{.Host}}") + "` + "`" + `) && PathPrefix('{{.Path}}')",
-		{{if .Stripprefix -}}
-		"traefik.http.middlewares.{{.Name}}-stripprefix.stripprefix.prefixes={{.Stripprefix}}",
-		"traefik.http.routers.{{.Name}}.middlewares={{.Name}}-stripprefix@docker",
-		{{- end}}
+		"traefik.http.routers.{{$tag.Name}}.rule=Host(` + "`" + `" + os.Getenv("{{$tag.Host}}") + "` + "`" + `) && PathPrefix('{{$tag.Path}}')",
+		{{if $tag.Stripprefix -}}
+		"traefik.http.middlewares.{{$tag.Name}}-stripprefix.stripprefix.prefixes={{$tag.Stripprefix}}",
+		"traefik.http.routers.{{$tag.Name}}.middlewares={{$tag.Name}}-stripprefix@docker",
 		{{- end}}
 	}
 
@@ -97,6 +98,8 @@ func AddRegistryTags(server server.Server) {
 		tags = append(tags, "traefik.enable=true")
 	}
 
-	server.SetTags(tags...)
+	server.AddRegistryTags(tags...)
 }
+{{- end}}
+{{- end}}
 `

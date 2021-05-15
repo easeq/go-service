@@ -7,6 +7,7 @@ import (
 	"github.com/Netflix/go-env"
 	// Manages env config
 	_ "github.com/easeq/go-config"
+	"github.com/easeq/go-service/registry"
 )
 
 // Config manages the HTTP server config
@@ -28,5 +29,5 @@ func (c *Config) Address() string {
 
 // Consul tags
 func (c *Config) GetTags() []string {
-	return strings.Split(c.Tags, ",")
+	return strings.Split(c.Tags, registry.TAGS_SEPARATOR)
 }

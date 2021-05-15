@@ -6,10 +6,10 @@ package example
 
 import (
 	"context"
-	"os"
 
 	"github.com/easeq/go-service/client"
 	"github.com/easeq/go-service/server"
+	"os"
 )
 
 type ExampleServiceGSClient interface {
@@ -85,8 +85,7 @@ func (sc *exampleServiceGSClient) BiDirectionalStream(ctx context.Context, in *R
 	return stream, nil
 }
 
-// Add the tags to the registry
-func AddRegistryTags(server server.Server) {
+func AddExampleServiceServerRegistryTags(server server.Server) {
 	tags := []string{
 		"traefik.http.routers.service-name-unique.rule=Host(`" + os.Getenv("BASE_URL") + "`) && PathPrefix('/your/path/with/or/without/prefix')",
 		"traefik.http.middlewares.service-name-unique-stripprefix.stripprefix.prefixes=/your/prefix/path",
@@ -97,5 +96,5 @@ func AddRegistryTags(server server.Server) {
 		tags = append(tags, "traefik.enable=true")
 	}
 
-	server.SetTags(tags...)
+	server.AddRegistryTags(tags...)
 }

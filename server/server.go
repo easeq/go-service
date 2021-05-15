@@ -14,8 +14,8 @@ type Server interface {
 	Run(context.Context) error
 	// Client creates if not exists and returns the client to call the service
 	GetClient(address string) (pool.Connection, error)
-	// SetTags sets the registry tags for the server
-	SetRegistryTags(tags ...string)
+	// AddRegistryTags appends new tags to the existing tags slice
+	AddRegistryTags(tags ...string)
 	// Get string identifier of the server
 	String() string
 	// Method to shut down server

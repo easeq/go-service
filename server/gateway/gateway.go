@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-redis-access-control/gateway"
@@ -130,4 +131,9 @@ func (g *Gateway) ShutDown(ctx context.Context) error {
 // String - Returns the type of the server
 func (g *Gateway) String() string {
 	return SERVER_TYPE
+}
+
+// AddRegistryTags - sets the registry tags for the server
+func (g *Gateway) AddRegistryTags(tags ...string) {
+	g.Config.Tags += registry.TAGS_SEPARATOR + strings.Join(tags, registry.TAGS_SEPARATOR)
 }

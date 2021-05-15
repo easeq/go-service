@@ -5,6 +5,10 @@ import (
 	"fmt"
 )
 
+const (
+	TAGS_SEPARATOR = ","
+)
+
 // ErrRegistryRegFailed returned when service registry with registry fails
 type ErrRegistryRegFailed struct {
 	Value error
