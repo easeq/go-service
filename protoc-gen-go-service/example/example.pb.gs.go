@@ -87,9 +87,9 @@ func (sc *exampleServiceGSClient) BiDirectionalStream(ctx context.Context, in *R
 
 func AddExampleServiceServerRegistryTags(server server.Server) {
 	tags := []string{
-		"traefik.http.routers.service-name-unique.rule=Host(`" + os.Getenv("BASE_URL") + "`) && PathPrefix('/your/path/with/or/without/prefix')",
+		"traefik.http.routers.service-name-unique.rule=Host(`" + os.Getenv("BASE_URL") + "`) && PathPrefix(`/your/path/with/or/without/prefix`)",
 		"traefik.http.middlewares.service-name-unique-stripprefix.stripprefix.prefixes=/your/prefix/path",
-		"traefik.http.routers.service-name-unique.middlewares=service-name-unique-stripprefix@docker",
+		"traefik.http.routers.service-name-unique.middlewares=service-name-unique-stripprefix@consulcatalog",
 	}
 
 	if len(tags) > 0 {

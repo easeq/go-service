@@ -83,10 +83,10 @@ func (sc *{{$serviceNameCamel}}GSClient) {{$methodName}}(ctx context.Context, in
 {{if $tag}}
 func Add{{$serviceName}}ServerRegistryTags(server server.Server) {
 	tags := []string{
-		"traefik.http.routers.{{$tag.Name}}.rule=Host(` + "`" + `" + os.Getenv("{{$tag.Host}}") + "` + "`" + `) && PathPrefix('{{$tag.Path}}')",
+		"traefik.http.routers.{{$tag.Name}}.rule=Host(` + "`" + `" + os.Getenv("{{$tag.Host}}") + "` + "`" + `) && PathPrefix(` + "`" + `{{$tag.Path}}` + "`" + `)",
 		{{if $tag.Stripprefix -}}
 		"traefik.http.middlewares.{{$tag.Name}}-stripprefix.stripprefix.prefixes={{$tag.Stripprefix}}",
-		"traefik.http.routers.{{$tag.Name}}.middlewares={{$tag.Name}}-stripprefix@docker",
+		"traefik.http.routers.{{$tag.Name}}.middlewares={{$tag.Name}}-stripprefix@consulcatalog",
 		{{- end}}
 	}
 
