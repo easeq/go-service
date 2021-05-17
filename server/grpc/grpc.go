@@ -117,6 +117,16 @@ func (g *Grpc) GetClient(address string) (pool.Connection, error) {
 	return nil, err
 }
 
+// Address returns the server address
+func (g *Grpc) Address() string {
+	return g.Config.Address()
+}
+
+// GetMetadata returns the metadata by key
+func (g *Grpc) GetMetadata(key string) interface{} {
+	return nil
+}
+
 // Register registers the grpc server with the service registry
 func (g *Grpc) Register(
 	ctx context.Context,

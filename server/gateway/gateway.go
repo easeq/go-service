@@ -103,6 +103,16 @@ func (g *Gateway) GetClient(address string) (pool.Connection, error) {
 	return nil, fmt.Errorf("no avaialable client")
 }
 
+// Address returns the server address
+func (g *Gateway) Address() string {
+	return g.Config.Address()
+}
+
+// GetMetadata returns the metadata by key
+func (g *Gateway) GetMetadata(key string) interface{} {
+	return g.Metadata.Get(key)
+}
+
 // Register registers the grpc server with the service registry
 func (g *Gateway) Register(
 	ctx context.Context,

@@ -12,9 +12,10 @@ import (
 
 // Config manages the HTTP server config
 type Config struct {
-	Host string `env:"HTTP_HOST,defaut="`
-	Port int    `env:"HTTP_PORT,default=8080"`
-	Tags string `env:"HTTP_CONSUL_TAGS,default="`
+	Host     string `env:"HTTP_HOST,defaut="`
+	Port     int    `env:"HTTP_PORT,default=8080"`
+	Tags     string `env:"HTTP_CONSUL_TAGS,default="`
+	Metadata Metadata
 }
 
 // UnmarshalEnv env.EnvSet to GatewayConfig
