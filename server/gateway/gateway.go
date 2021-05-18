@@ -54,7 +54,6 @@ type Gateway struct {
 // NewGateway creates and returns gRPC-gateway
 func NewGateway(opts ...Option) *Gateway {
 	g := &Gateway{
-		Mux:        runtime.NewServeMux(),
 		Middleware: gateway.Middleware,
 		MuxOptions: []runtime.ServeMuxOption{},
 		Config:     goconfig.NewEnvConfig(new(Config)).(*Config),
@@ -63,6 +62,12 @@ func NewGateway(opts ...Option) *Gateway {
 
 	for _, opt := range opts {
 		opt(g)
+	}
+
+	g.Mux = runtime.NewServeMux(g.MuxOptions...)
+	g.Server = &http.Server{
+		Addr:    g.Address(),
+		Handler: g.Middleware(g.Mux),
 	}
 
 	return g
@@ -124,11 +129,6 @@ func (g *Gateway) Register(
 
 // Run runs the HTTP server
 func (g *Gateway) Run(ctx context.Context) error {
-	g.Server = &http.Server{
-		Addr:    g.Address(),
-		Handler: g.Middleware(g.Mux),
-	}
-
 	log.Println("starting HTTP/REST gateway...")
 	return g.Server.ListenAndServe()
 }
