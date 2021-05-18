@@ -110,7 +110,7 @@ func (c *Grpc) Call(
 
 	cc, ok := conn.(*grpc.ClientConn)
 	if !ok {
-		return fmt.Errorf("Invalid connection")
+		return fmt.Errorf("invalid connection")
 	}
 
 	callOpts := make([]grpc.CallOption, len(opts))
@@ -136,7 +136,7 @@ func (c *Grpc) Stream(
 
 	cc, ok := conn.(*grpc.ClientConn)
 	if !ok {
-		return nil, fmt.Errorf("Invalid connection")
+		return nil, fmt.Errorf("invalid connection")
 	}
 
 	callOpts := make([]grpc.CallOption, len(opts))
@@ -149,7 +149,7 @@ func (c *Grpc) Stream(
 		return nil, ErrInvalidStreamDescription
 	}
 
-	stream, err := cc.NewStream(ctx, serviceDesc, "/v1.ShopifyService/DataSync", callOpts...)
+	stream, err := cc.NewStream(ctx, serviceDesc, method, callOpts...)
 	if err != nil {
 		return nil, err
 	}
