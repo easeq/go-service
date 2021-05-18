@@ -1,4 +1,4 @@
-package gateway
+package grpc
 
 import (
 	"os"
@@ -19,19 +19,17 @@ func TestUnmarshalEnv(t *testing.T) {
 			name:        "checkDefaultValues",
 			vars:        map[string]string{},
 			emptyConfig: Config{},
-			want:        Config{Port: 8080, Metadata: Metadata{GrpcPort: 9090}},
+			want:        Config{Port: 9090},
 		},
 		{
 			name: "loadAllVarsFromEnv",
 			vars: map[string]string{
-				"HTTP_HOST":        "localhost",
-				"HTTP_PORT":        "8085",
 				"GRPC_HOST":        "grpc-host",
 				"GRPC_PORT":        "9095",
-				"HTTP_CONSUL_TAGS": "primary,secondary",
+				"GRPC_CONSUL_TAGS": "primary,secondary",
 			},
 			emptyConfig: Config{},
-			want:        Config{"localhost", 8085, "primary,secondary", Metadata{"grpc-host", 9095}},
+			want:        Config{"grpc-host", 9095, "primary,secondary"},
 		},
 	}
 
@@ -95,7 +93,7 @@ func TestGetTags(t *testing.T) {
 		{
 			name: "getConsulTagsFromEnv",
 			vars: map[string]string{
-				"HTTP_CONSUL_TAGS": "primary,secondary",
+				"GRPC_CONSUL_TAGS": "primary,secondary",
 			},
 			config: Config{},
 			want:   []string{"primary", "secondary"},

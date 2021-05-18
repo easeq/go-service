@@ -138,9 +138,6 @@ func (g *Grpc) Register(
 
 // Run runs gRPC service
 func (g *Grpc) Run(ctx context.Context) error {
-	// Register service
-	server := grpc.NewServer(g.ServerOptions...)
-
 	listener, err := net.Listen("tcp", g.Config.Address())
 	if err != nil {
 		return err
@@ -148,7 +145,7 @@ func (g *Grpc) Run(ctx context.Context) error {
 
 	// start gRPC server
 	log.Println("Starting gRPC server...")
-	return server.Serve(listener)
+	return g.Server.Serve(listener)
 }
 
 // Shutdown - gracefully stops the server
