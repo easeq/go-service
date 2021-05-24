@@ -31,7 +31,8 @@ type ConnectionPool struct {
 // NewPool creates a new pool with size and factory
 func NewPool(opts ...Option) *ConnectionPool {
 	pool := &ConnectionPool{
-		size: 10,
+		conns: make(map[string](chan Connection)),
+		size:  10,
 	}
 
 	for _, opt := range opts {

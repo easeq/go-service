@@ -88,8 +88,13 @@ func WithDialOptions(opts ...grpc.DialOption) ClientOption {
 
 // Create client
 func (c *Grpc) Dial(name string, opts ...client.DialOption) (pool.Connection, error) {
+	dialOpts := make([]interface{}, len(c.dialOptions))
+	for i, opt := range opts {
+		dialOpts[i] = opt
+	}
+
 	address := c.Registry.ConnectionString(name, defaultScheme)
-	return c.pool.Get(address, c.dialOptions)
+	return c.pool.Get(address, dialOpts...)
 }
 
 // Call gRPC method
