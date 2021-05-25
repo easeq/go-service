@@ -98,16 +98,16 @@ func (c *Grpc) Call(
 	res interface{},
 	opts ...client.CallOption,
 ) error {
-	conn, err := c.Dial(sc.GetServiceName())
+	pcc, err := c.Dial(sc.GetServiceName())
 	if err != nil {
 		return err
 	}
 
-	defer conn.Close()
+	defer pcc.Close()
 
-	cc, ok := conn.(*grpc.ClientConn)
+	cc, ok := pcc.Conn().(*grpc.ClientConn)
 	if !ok {
-		return fmt.Errorf("invalid connection")
+		return fmt.Errorf("invalid factory client connection")
 	}
 
 	callOpts := make([]grpc.CallOption, len(opts))
@@ -126,12 +126,12 @@ func (c *Grpc) Stream(
 	req interface{},
 	opts ...client.CallOption,
 ) (client.StreamClient, error) {
-	conn, err := c.Dial(sc.GetServiceName())
+	pcc, err := c.Dial(sc.GetServiceName())
 	if err != nil {
 		return nil, err
 	}
 
-	cc, ok := conn.(*grpc.ClientConn)
+	cc, ok := pcc.Conn().(*grpc.ClientConn)
 	if !ok {
 		return nil, fmt.Errorf("invalid connection")
 	}
@@ -151,7 +151,7 @@ func (c *Grpc) Stream(
 		return nil, err
 	}
 
-	gs := &GrpcStreamClient{stream, conn}
+	gs := &GrpcStreamClient{stream, pcc}
 	if req == nil {
 		return gs, nil
 	}

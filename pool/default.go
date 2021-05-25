@@ -98,8 +98,8 @@ func (p *ConnectionPool) get(name string) (chan FactoryConn, Factory, error) {
 func (p *ConnectionPool) wrap(address string, conn FactoryConn) Connection {
 	return &ClientConn{
 		p:       p,
-		Address: address,
-		Conn:    conn,
+		address: address,
+		conn:    conn,
 	}
 }
 
@@ -188,10 +188,20 @@ func (p *ConnectionPool) Close() error {
 }
 
 type ClientConn struct {
-	Conn    FactoryConn
-	Address string
+	conn    FactoryConn
+	address string
 	p       *ConnectionPool
 	sync.RWMutex
+}
+
+// Address returns the factory connection address
+func (cc *ClientConn) Address() string {
+	return cc.address
+}
+
+// Conn returns the factory connection
+func (cc *ClientConn) Conn() FactoryConn {
+	return cc.conn
 }
 
 // Close - closes the connection to the gRPC service server
@@ -199,9 +209,9 @@ func (cc *ClientConn) Close() error {
 	cc.RLock()
 	defer cc.RUnlock()
 
-	if cc.Conn != nil {
-		return cc.p.CloseFunc(cc.Conn)
+	if cc.conn != nil {
+		return cc.p.CloseFunc(cc.conn)
 	}
 
-	return cc.p.add(cc.Address, cc.Conn)
+	return cc.p.add(cc.address, cc.conn)
 }

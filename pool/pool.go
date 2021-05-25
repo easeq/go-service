@@ -14,6 +14,10 @@ type Pool interface {
 }
 
 type Connection interface {
+	// Address returns the connection address
+	Address() string
+	// Conn returns the factory connection
+	Conn() FactoryConn
 	// Close connection
 	Close() error
 }
