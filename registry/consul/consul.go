@@ -1,4 +1,4 @@
-package registry
+package consul
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	goconfig "github.com/easeq/go-config"
+	"github.com/easeq/go-service/registry"
 
 	"github.com/Netflix/go-env"
 	"github.com/easeq/go-consul-registry/v2/consul"
@@ -33,15 +34,21 @@ func (c *Config) UnmarshalEnv(es env.EnvSet) error {
 	return env.Unmarshal(es, c)
 }
 
-// NewRegistry returns a new consul registry
-func NewRegistry() ServiceRegistry {
+// NewConsul returns a new consul registry
+func NewConsul() *Consul {
 	return &Consul{
 		Config: goconfig.NewEnvConfig(new(Config)).(*Config),
 	}
 }
 
 // Register registers service with the registry
-func (c *Consul) Register(ctx context.Context, name string, host string, port int) *ErrRegistryRegFailed {
+func (c *Consul) Register(
+	ctx context.Context,
+	name string,
+	host string,
+	port int,
+	tags ...string,
+) *registry.ErrRegistryRegFailed {
 	if err := consul.Register(
 		ctx,
 		name,
@@ -49,8 +56,9 @@ func (c *Consul) Register(ctx context.Context, name string, host string, port in
 		port,
 		c.Address(),
 		c.TTL,
+		tags...,
 	); err != nil {
-		return &ErrRegistryRegFailed{err}
+		return &registry.ErrRegistryRegFailed{Value: err}
 	}
 
 	return nil

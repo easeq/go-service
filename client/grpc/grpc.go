@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/easeq/go-service/client"
 	"github.com/easeq/go-service/pool"
 	"github.com/easeq/go-service/registry"
-	"github.com/easeq/go-service/server"
 	"google.golang.org/grpc"
 )
 
@@ -19,97 +19,95 @@ const (
 
 var (
 	// ErrInvalidAddress returned when the address provided is invalid
-	ErrInvalidAddress = errors.New("Invalid service address")
+	ErrInvalidAddress = errors.New("invalid service address")
 	// ErrInvalidRegistry returned when the registry provided does not implement regsitry.ServiceRegsitry
-	ErrInvalidRegistry = errors.New("Registry provided is invalid")
+	ErrInvalidRegistry = errors.New("registry provided is invalid")
 	// ErrTooFewArgs returned when the args provided is less the args required
-	ErrTooFewArgs = errors.New("Too few arguments. Required 3")
+	ErrTooFewArgs = errors.New("too few arguments. Required 3")
 	// ErrTooFewArgs returned when the args provided is less the args required
-	ErrTooFewFactoryArgs = errors.New("Too few arguments for the factory. Required 1 address")
+	ErrTooFewFactoryArgs = errors.New("too few arguments for the factory. Required 1 address")
 	// ErrInvalidDialOptions returned when the dial options provided are not valid
-	ErrInvalidDialOptions = errors.New("Dial options provided are invalid")
+	ErrInvalidDialOptions = errors.New("dial options provided are invalid")
 	// ErrInvalidGrpcClient returned when type assertion to GrpcClient fails
-	ErrInvalidGrpcClient = errors.New("Invalid GrpcClient")
+	ErrInvalidGrpcClient = errors.New("invalid GrpcClient")
+	// ErrInvalidStreamDescription returned when the variable passed is not of grpc.StreamDesc type
+	ErrInvalidStreamDescription = errors.New("invalid stream description")
 )
 
-type GrpcClient struct {
-	pool.Connection
-	address string
-	p       *Pool
+// ServiceOption to pass as arg while creating new service
+type ClientOption func(*Grpc)
+
+type Grpc struct {
+	pool *pool.ConnectionPool
+	// cc       *grpc.ClientConn
+	factory   pool.Factory
+	closeFunc pool.CloseFunc
+	Registry  registry.ServiceRegistry
 	sync.RWMutex
 }
 
-// NewGrpcClient creates and rea new gRPC client connection
-func NewGrpcClientConn(args ...interface{}) (pool.Factory, error) {
-	if len(args) < 2 {
-		return nil, ErrTooFewArgs
+func NewGrpc(opts ...ClientOption) *Grpc {
+	c := new(Grpc)
+
+	for _, opt := range opts {
+		opt(c)
 	}
 
-	registry, ok := args[0].(registry.ServiceRegistry)
-	if !ok {
-		return nil, ErrInvalidRegistry
-	}
+	c.pool = pool.NewPool(
+		pool.WithFactory(c.factory),
+		pool.WithSize(10),
+		pool.WithCloseFunc(c.closeFunc),
+		// pool.WithPoolConnectionFactory(GrpcClientConn),
+	)
 
-	scheme, ok := args[1].(string)
-	if !ok {
-		scheme = defaultScheme
-	}
-
-	opts := make([]grpc.DialOption, 0)
-	if len(args) == 3 {
-		dialOpts, ok := args[2].([]grpc.DialOption)
-		if !ok {
-			return nil, ErrInvalidDialOptions
-		}
-
-		opts = dialOpts
-	}
-
-	return func(args ...interface{}) (pool.Connection, error) {
-		if len(args) != 1 {
-			return nil, ErrTooFewFactoryArgs
-		}
-
-		address, ok := args[0].(string)
-		if !ok {
-			return nil, ErrInvalidAddress
-		}
-
-		cc, err := grpc.Dial(registry.ConnectionString(address, scheme), opts...)
-		if err != nil {
-			return nil, fmt.Errorf("gRPC connection failed: %v", err)
-		}
-
-		return cc, nil
-	}, nil
+	return c
 }
 
-// Helper method to get GrpcClient
-func Get(server server.Server, name string) (*GrpcClient, error) {
-	conn, err := server.GetClient(name)
-	if err != nil {
-		return nil, err
+// WithRegistry passes services registry externally
+func WithRegistry(registry registry.ServiceRegistry) ClientOption {
+	return func(c *Grpc) {
+		c.Registry = registry
 	}
-
-	client, ok := conn.(*GrpcClient)
-	if !ok {
-		return nil, ErrInvalidGrpcClient
-	}
-
-	return client, nil
 }
 
-// Call - calls method on the connected gRPC client
-func (gc *GrpcClient) Call(
+// WithFactory defines the client connection creation factory
+func WithFactory(factory pool.Factory) ClientOption {
+	return func(c *Grpc) {
+		c.factory = factory
+	}
+}
+
+func WithCloseFunc(closeFunc pool.CloseFunc) ClientOption {
+	return func(c *Grpc) {
+		c.closeFunc = closeFunc
+	}
+}
+
+// Create client
+func (c *Grpc) Dial(name string, opts ...client.DialOption) (pool.Connection, error) {
+	address := c.Registry.ConnectionString(name, defaultScheme)
+	return c.pool.Get(address)
+}
+
+// Call gRPC method
+func (c *Grpc) Call(
 	ctx context.Context,
+	sc client.ServiceClient,
 	method string,
 	req interface{},
 	res interface{},
-	opts ...interface{},
+	opts ...client.CallOption,
 ) error {
-	cc, ok := gc.Connection.(*grpc.ClientConn)
+	pcc, err := c.Dial(sc.GetServiceName())
+	if err != nil {
+		return err
+	}
+
+	defer pcc.Close()
+
+	cc, ok := pcc.Conn().(*grpc.ClientConn)
 	if !ok {
-		return fmt.Errorf("Invalid connection")
+		return fmt.Errorf("invalid factory client connection")
 	}
 
 	callOpts := make([]grpc.CallOption, len(opts))
@@ -120,14 +118,80 @@ func (gc *GrpcClient) Call(
 	return cc.Invoke(ctx, method, req, res, callOpts...)
 }
 
-// Close - closes the connection to the gRPC service server
-func (gc *GrpcClient) Close() error {
-	gc.RLock()
-	defer gc.RUnlock()
-
-	if gc.Connection != nil {
-		return gc.Connection.Close()
+func (c *Grpc) Stream(
+	ctx context.Context,
+	sc client.ServiceClient,
+	desc interface{},
+	method string,
+	req interface{},
+	opts ...client.CallOption,
+) (client.StreamClient, error) {
+	pcc, err := c.Dial(sc.GetServiceName())
+	if err != nil {
+		return nil, err
 	}
 
-	return gc.p.add(gc.address, gc.Connection)
+	cc, ok := pcc.Conn().(*grpc.ClientConn)
+	if !ok {
+		return nil, fmt.Errorf("invalid connection")
+	}
+
+	callOpts := make([]grpc.CallOption, len(opts))
+	for i, opt := range opts {
+		callOpts[i] = opt.(grpc.CallOption)
+	}
+
+	serviceDesc, ok := desc.(*grpc.StreamDesc)
+	if !ok {
+		return nil, ErrInvalidStreamDescription
+	}
+
+	stream, err := cc.NewStream(ctx, serviceDesc, method, callOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	gs := &GrpcStreamClient{stream, pcc}
+	if req == nil {
+		return gs, nil
+	}
+
+	if err := gs.stream.SendMsg(req); err != nil {
+		return nil, err
+	}
+
+	return gs, nil
+}
+
+type GrpcStreamClient struct {
+	stream grpc.ClientStream
+	conn   pool.Connection
+}
+
+func (sc *GrpcStreamClient) Recv(res interface{}) error {
+	if err := sc.stream.RecvMsg(res); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sc *GrpcStreamClient) Send(req interface{}) error {
+	return sc.stream.SendMsg(req)
+}
+
+func (sc *GrpcStreamClient) CloseAndRecv(res interface{}) error {
+	if err := sc.stream.CloseSend(); err != nil {
+		return err
+	}
+
+	if err := sc.stream.RecvMsg(res); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sc *GrpcStreamClient) CloseConn() error {
+	return sc.conn.Close()
 }

@@ -6,17 +6,17 @@ import (
 	"log"
 	"net"
 	"os"
-	"os/signal"
+	"strings"
 
 	goconfig "github.com/easeq/go-config"
-	grpc_client "github.com/easeq/go-service/client/grpc"
-	"github.com/easeq/go-service/db"
-	goservice_db "github.com/easeq/go-service/db"
 	"github.com/easeq/go-service/pool"
 	"github.com/easeq/go-service/registry"
-	goservice_registry "github.com/easeq/go-service/registry"
-	"github.com/easeq/go-service/server"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+
+	"github.com/opentracing/opentracing-go"
+	jaegercfg "github.com/uber/jaeger-client-go/config"
+	jaegerlog "github.com/uber/jaeger-client-go/log"
+	"github.com/uber/jaeger-lib/metrics"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -28,23 +28,17 @@ var (
 )
 
 const (
-	// maxBadClientConnRetries is the number of time to retry connecting to client quitting
-	maxBadClientConnRetries = 3
+	SERVER_TYPE = "grpc"
 )
-
-// ServiceRegistrar gRPC service registration func
-type ServiceRegistrar func(*grpc.Server, *Grpc)
 
 // Grpc holds gRPC config
 type Grpc struct {
-	ServerOptions    []grpc.ServerOption
-	ServiceRegistrar ServiceRegistrar
-	DialOptions      []grpc.DialOption
-	Database         goservice_db.ServiceDatabase
-	Registry         goservice_registry.ServiceRegistry
-	ClientPool       pool.Pool
-	exit             chan os.Signal
-	*Gateway
+	ServerOptions []grpc.ServerOption
+	DialOptions   []grpc.DialOption
+	// Broker     broker.Broker
+	Logger *zap.Logger
+	Server *grpc.Server
+	exit   chan os.Signal
 	*Config
 }
 
@@ -52,49 +46,38 @@ type Grpc struct {
 type Option func(*Grpc)
 
 // NewGrpc creates a new gRPC
-func NewGrpc(opts ...Option) server.Server {
-	defaultRegistry := goservice_registry.NewRegistry()
+func NewGrpc(opts ...Option) *Grpc {
 	g := &Grpc{
 		DialOptions:   []grpc.DialOption{grpc.WithInsecure()},
 		ServerOptions: []grpc.ServerOption{},
 		Config:        goconfig.NewEnvConfig(new(Config)).(*Config),
-		Database:      goservice_db.NewPostgres(),
 		exit:          make(chan os.Signal),
-		Gateway:       NewGateway(),
-		Registry:      defaultRegistry,
 	}
 
 	for _, opt := range opts {
 		opt(g)
 	}
 
-	if len(g.MuxOptions) > 0 {
-		g.Mux = runtime.NewServeMux(g.MuxOptions...)
-	} else {
-		g.Mux = runtime.NewServeMux()
-	}
-
-	factory, err := grpc_client.NewGrpcClientConn(g.Registry, "http", g.DialOptions)
-	if err != nil {
-		panic("Invalid pool factory: " + err.Error())
-	}
-
-	g.ClientPool = grpc_client.NewGrpcClientPool(10, factory)
+	g.Server = grpc.NewServer(g.ServerOptions...)
 
 	return g
+}
+
+// Get zap logger
+func GetLogger() *zap.Logger {
+	zapLogger, err := zap.NewProduction()
+	if err != nil {
+		log.Println("ZapLogger failed!")
+	}
+	defer zapLogger.Sync()
+
+	return zapLogger
 }
 
 // WithGrpcServerOptions adds gRPC options
 func WithGrpcServerOptions(opts ...grpc.ServerOption) Option {
 	return func(g *Grpc) {
 		g.ServerOptions = opts
-	}
-}
-
-// WithGrpcServiceRegistrar adds gRPC service registration callback
-func WithGrpcServiceRegistrar(registrar ServiceRegistrar) Option {
-	return func(g *Grpc) {
-		g.ServiceRegistrar = registrar
 	}
 }
 
@@ -105,105 +88,99 @@ func WithGRPCDialOptions(opts ...grpc.DialOption) Option {
 	}
 }
 
-// WithDatabase passes databases externally
-func WithDatabase(database db.ServiceDatabase) Option {
-	return func(g *Grpc) {
-		if g.Database != nil {
-			g.Database.Close()
-		}
+// WithBroker passes the message broker externally
+// func WithBroker(opts broker.Broker) Option {
+// 	return func(g *Grpc) {
+// 		g.Broker = opts
+// 	}
+// }
 
-		g.Database = database
-	}
-}
+// func (g *Grpc) getClientConn(name string) (pool.Connection, error) {
+// 	conn, err := g.ClientPool.Get(name)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-// WithRegistry passes services registry externally
-func WithRegistry(registry goservice_registry.ServiceRegistry) Option {
-	return func(g *Grpc) {
-		g.Registry = registry
-	}
-}
-
-func (g *Grpc) getClientConn(name string) (pool.Connection, error) {
-	conn, err := g.ClientPool.Get(name)
-	if err != nil {
-		return nil, err
-	}
-
-	return conn, nil
-}
+// 	return conn, nil
+// }
 
 // Client creates if not exists and returns the client to call the service
 func (g *Grpc) GetClient(address string) (pool.Connection, error) {
 	var err error
-	for i := 0; i < maxBadClientConnRetries; i++ {
-		conn, err := g.getClientConn(address)
-		if err == nil {
-			return conn, nil
-		}
-	}
+	// for i := 0; i < maxBadClientConnRetries; i++ {
+	// 	conn, err := g.getClientConn(address)
+	// 	if err == nil {
+	// 		return conn, nil
+	// 	}
+	// }
 
 	return nil, err
 }
 
+// Address returns the server address
+func (g *Grpc) Address() string {
+	return g.Config.Address()
+}
+
+// GetMetadata returns the metadata by key
+func (g *Grpc) GetMetadata(key string) interface{} {
+	return nil
+}
+
 // Register registers the grpc server with the service registry
-func (g *Grpc) Register(ctx context.Context, name string) *registry.ErrRegistryRegFailed {
-	return g.Registry.Register(ctx, name, g.Host, g.Port)
+func (g *Grpc) Register(
+	ctx context.Context,
+	name string,
+	registry registry.ServiceRegistry,
+) *registry.ErrRegistryRegFailed {
+	return registry.Register(ctx, name, g.Host, g.Port, g.GetTags()...)
 }
 
 // Run runs gRPC service
 func (g *Grpc) Run(ctx context.Context) error {
-	if err := g.Database.Setup(); err != nil {
-		log.Printf("Database setup err -> %s", err)
-	}
-
-	if err := g.Database.UpdateHandle(); err != nil {
-		return err
-	}
-
-	defer g.Database.Close()
-
-	// Run migrations
-	if err := g.Database.Migrate(); err != nil {
-		log.Println(err)
-	}
-
-	// Register service
-	server := grpc.NewServer(g.ServerOptions...)
-	if g.ServiceRegistrar == nil {
-		return ErrRequiredGRPCRegistrar
-	}
-
-	g.ServiceRegistrar(server, g)
-	// reflection.Register(server) // for EVANS CLI
-
 	listener, err := net.Listen("tcp", g.Config.Address())
 	if err != nil {
 		return err
 	}
 
-	// graceful shutdown
-	signal.Notify(g.exit, os.Interrupt)
-	go func() {
-		for range g.exit {
-			log.Println("Closing grpc-client connections pool")
-			g.ClientPool.Close()
-
-			// sig is a ^C, handle it
-			log.Println("Closing DB connection")
-			g.Database.Close()
-
-			log.Println("Shutting down gRPC server...")
-			server.GracefulStop()
-			<-ctx.Done()
-		}
-	}()
-
-	// run HTTP gateway
-	go func() {
-		_ = g.Gateway.Run(ctx, g)
-	}()
-
 	// start gRPC server
 	log.Println("Starting gRPC server...")
-	return server.Serve(listener)
+	return g.Server.Serve(listener)
+}
+
+// Shutdown - gracefully stops the server
+func (g *Grpc) ShutDown(ctx context.Context) error {
+	g.Server.GracefulStop()
+	return nil
+}
+
+// AddRegistryTags - sets the registry tags for the server
+func (g *Grpc) AddRegistryTags(tags ...string) {
+	g.Config.Tags = strings.Join(
+		append(g.Config.GetTags(), tags...),
+		registry.TAGS_SEPARATOR,
+	)
+}
+
+// String - Returns the type of the server
+func (g *Grpc) String() string {
+	return SERVER_TYPE
+}
+
+func init() {
+	otCfg, err := jaegercfg.FromEnv()
+	if err != nil {
+		log.Println("Error setting up opentracing: ", err)
+	}
+
+	jLogger := jaegerlog.StdLogger
+	jMetricsFactory := metrics.NullFactory
+
+	tracer, _, err := otCfg.NewTracer(
+		jaegercfg.Logger(jLogger),
+		jaegercfg.Metrics(jMetricsFactory),
+	)
+
+	// TODO: find a place to add closer.Close() to avoid premature closing
+	opentracing.SetGlobalTracer(tracer)
 }

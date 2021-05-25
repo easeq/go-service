@@ -5,19 +5,23 @@ import (
 	"fmt"
 )
 
+const (
+	TAGS_SEPARATOR = ","
+)
+
 // ErrRegistryRegFailed returned when service registry with registry fails
 type ErrRegistryRegFailed struct {
-	value error
+	Value error
 }
 
 func (e *ErrRegistryRegFailed) Error() string {
-	return fmt.Sprintf("service registration failed: [%s]", e.value)
+	return fmt.Sprintf("service registration failed: [%s]", e.Value)
 }
 
 // ServiceRegistry - service registry
 type ServiceRegistry interface {
 	// Registers the service
-	Register(ctx context.Context, name string, host string, port int) *ErrRegistryRegFailed
+	Register(ctx context.Context, name string, host string, port int, tags ...string) *ErrRegistryRegFailed
 	// Address returns the address of the registry
 	Address() string
 	// ConnectionString returns the full formatted connection string

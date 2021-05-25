@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package go.service.protoc_gen_go_service.options;
+
+option go_package = "github.com/easeq/go-service/protoc-gen-go-service/options";
+
+import "google/protobuf/descriptor.proto";
+
+// RegistryTag is used to define the tag for the proxy to check against a service registry and redirect 
+// the request accordingly to the correct server.
+message RegistryTag {
+    // A unique name for your service
+    // The string will be checked as a key for env vars and if there is no value set, the string will be used as the value.
+    string name = 1;
+    // Same as the previous one, the value will be checked against env vars, if there is no env var, then the value will be used as is.
+    string host = 2;
+    // The complete path of your service with the prefix
+    string path = 3;
+    // Path to strip by the proxy before redirecting the request
+    string stripprefix = 4;
+}
+
+extend google.protobuf.ServiceOptions {
+    RegistryTag registry_tag = 72295730;
+}

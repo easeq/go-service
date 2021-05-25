@@ -1,4 +1,4 @@
-package grpc
+package gateway
 
 import (
 	"fmt"
@@ -12,9 +12,10 @@ import (
 
 // Config manages the HTTP server config
 type Config struct {
-	Host string `env:"GRPC_HOST,defaut="`
-	Port int    `env:"GRPC_PORT,default=9090"`
-	Tags string `env:"GRPC_CONSUL_TAGS,default="`
+	Host     string `env:"HTTP_HOST,defaut="`
+	Port     int    `env:"HTTP_PORT,default=8080"`
+	Tags     string `env:"HTTP_CONSUL_TAGS,default="`
+	Metadata Metadata
 }
 
 // UnmarshalEnv env.EnvSet to GatewayConfig

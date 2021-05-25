@@ -1,0 +1,22 @@
+syntax = "proto3";
+package v1;
+
+option go_package = "./;example";
+
+import "google/protobuf/descriptor.proto";
+
+message NoServiceMessage {
+    repeated string role = 1;
+}
+
+// service EmptyService {
+//     rpc Unary(RequestNew) returns (ResponseNew){}
+// }
+
+// message RequestNew{
+//     string arg = 1;
+// }
+
+// message ResponseNew{
+//     bool success = 1;
+// }
