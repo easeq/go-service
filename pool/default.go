@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-
-	"google.golang.org/grpc"
 )
 
 var (
@@ -15,23 +13,25 @@ var (
 	ErrConnectionNotExists = errors.New("connection doesn't exist")
 	// ErrCouldNotAssignConnection when connection assignment fails
 	ErrCouldNotAssignConnection = errors.New("assigning connection to gRPC client failed")
+	// ErrInvalidConnectionPool returwhen the type assertion to ConnectionPool fails
+	ErrInvalidConnectionPool = errors.New("invalid connection pool")
 )
 
 // Option to pass as arg while creating new service
 type Option func(*ConnectionPool)
 
 type ConnectionPool struct {
-	conns    map[string](chan Connection)
-	factory  Factory
-	size     int
-	dialOpts []grpc.DialOption
+	conns     map[string](chan FactoryConn)
+	factory   Factory
+	CloseFunc CloseFunc
+	size      int
 	sync.RWMutex
 }
 
 // NewPool creates a new pool with size and factory
 func NewPool(opts ...Option) *ConnectionPool {
 	pool := &ConnectionPool{
-		conns: make(map[string](chan Connection)),
+		conns: make(map[string](chan FactoryConn)),
 		size:  10,
 	}
 
@@ -60,22 +60,21 @@ func WithFactory(factory Factory) Option {
 	}
 }
 
-// WithDialOpts defines the grpc dial options
-func WithDialOpts(opts ...grpc.DialOption) Option {
+func WithCloseFunc(closeFunc CloseFunc) Option {
 	return func(p *ConnectionPool) {
-		p.dialOpts = opts
+		p.CloseFunc = closeFunc
 	}
 }
 
 // Creates a new connection channel group
-func (p *ConnectionPool) create(name string) (chan Connection, Factory, error) {
+func (p *ConnectionPool) create(name string) (chan FactoryConn, Factory, error) {
 	p.Lock()
 
 	if p.conns == nil {
 		return nil, nil, ErrConnectionClosed
 	}
 
-	p.conns[name] = make(chan Connection, p.size)
+	p.conns[name] = make(chan FactoryConn, p.size)
 
 	p.Unlock()
 
@@ -83,7 +82,7 @@ func (p *ConnectionPool) create(name string) (chan Connection, Factory, error) {
 }
 
 // Get individual connection channel by name and the factory to create connection
-func (p *ConnectionPool) get(name string) (chan Connection, Factory, error) {
+func (p *ConnectionPool) get(name string) (chan FactoryConn, Factory, error) {
 	p.RLock()
 	defer p.RUnlock()
 
@@ -96,17 +95,16 @@ func (p *ConnectionPool) get(name string) (chan Connection, Factory, error) {
 }
 
 // wraps a the connection provided in a standard Connection
-func (p *ConnectionPool) wrap(address string, conn Connection) Connection {
-	// gc := &GrpcClient{
-	// 	p:       p,
-	// 	address: address,
-	// }
-	// gc.Connection = conn
-	return nil
+func (p *ConnectionPool) wrap(address string, conn FactoryConn) Connection {
+	return &ClientConn{
+		p:       p,
+		Address: address,
+		Conn:    conn,
+	}
 }
 
 // Get creates or returns an existing gRPC client connection
-func (p *ConnectionPool) Get(address string, opts ...interface{}) (Connection, error) {
+func (p *ConnectionPool) Get(address string) (Connection, error) {
 	conns, factory, err := p.get(address)
 	if err != nil {
 		if conns, factory, err = p.create(address); err != nil {
@@ -126,7 +124,7 @@ func (p *ConnectionPool) Get(address string, opts ...interface{}) (Connection, e
 
 		return p.wrap(address, conn), nil
 	default:
-		conn, err := factory(address, opts...)
+		conn, err := factory(address)
 		if err != nil {
 			return nil, err
 		}
@@ -135,7 +133,7 @@ func (p *ConnectionPool) Get(address string, opts ...interface{}) (Connection, e
 	}
 }
 
-func (p *ConnectionPool) add(address string, conn Connection) error {
+func (p *ConnectionPool) add(address string, conn FactoryConn) error {
 	if conn == nil {
 		return ErrConnectionNotExists
 	}
@@ -144,7 +142,7 @@ func (p *ConnectionPool) add(address string, conn Connection) error {
 	defer p.RUnlock()
 
 	if p.conns == nil {
-		return conn.Close()
+		return p.CloseFunc(conn)
 	}
 
 	// add the connection to the pool or close the connection if the pool is full.
@@ -153,7 +151,7 @@ func (p *ConnectionPool) add(address string, conn Connection) error {
 		return nil
 	default:
 		// Pool group full, close this connection
-		return conn.Close()
+		return p.CloseFunc(conn)
 	}
 }
 
@@ -180,11 +178,30 @@ func (p *ConnectionPool) Close() error {
 
 		for conn := range group {
 			// Close connection
-			if err := conn.Close(); err != nil {
+			if err := p.CloseFunc(conn); err != nil {
 				return err
 			}
 		}
 	}
 
 	return nil
+}
+
+type ClientConn struct {
+	Conn    FactoryConn
+	Address string
+	p       *ConnectionPool
+	sync.RWMutex
+}
+
+// Close - closes the connection to the gRPC service server
+func (cc *ClientConn) Close() error {
+	cc.RLock()
+	defer cc.RUnlock()
+
+	if cc.Conn != nil {
+		return cc.p.CloseFunc(cc.Conn)
+	}
+
+	return cc.p.add(cc.Address, cc.Conn)
 }

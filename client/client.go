@@ -41,4 +41,6 @@ type StreamClient interface {
 	CloseAndRecv(res interface{}) error
 	// Receive response
 	Recv(res interface{}) error
+	// Close client connection
+	CloseConn() error
 }

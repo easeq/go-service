@@ -18,5 +18,10 @@ type Connection interface {
 	Close() error
 }
 
+type FactoryConn interface{}
+
 // Creates and returns a new connection
-type Factory func(address string, opts ...interface{}) (Connection, error)
+type Factory func(address string) (FactoryConn, error)
+
+// CloseFunc to close the connection in the pool
+type CloseFunc func(conn interface{}) error

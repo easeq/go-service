@@ -37,16 +37,12 @@ var (
 // ServiceOption to pass as arg while creating new service
 type ClientOption func(*Grpc)
 
-type GrpcPool struct {
-	conn pool.Connection
-}
-
 type Grpc struct {
 	pool *pool.ConnectionPool
 	// cc       *grpc.ClientConn
-	factory     pool.Factory
-	dialOptions []grpc.DialOption
-	Registry    registry.ServiceRegistry
+	factory   pool.Factory
+	closeFunc pool.CloseFunc
+	Registry  registry.ServiceRegistry
 	sync.RWMutex
 }
 
@@ -60,6 +56,8 @@ func NewGrpc(opts ...ClientOption) *Grpc {
 	c.pool = pool.NewPool(
 		pool.WithFactory(c.factory),
 		pool.WithSize(10),
+		pool.WithCloseFunc(c.closeFunc),
+		// pool.WithPoolConnectionFactory(GrpcClientConn),
 	)
 
 	return c
@@ -79,22 +77,16 @@ func WithFactory(factory pool.Factory) ClientOption {
 	}
 }
 
-// WithDialOptions defines the global dial options for the client
-func WithDialOptions(opts ...grpc.DialOption) ClientOption {
+func WithCloseFunc(closeFunc pool.CloseFunc) ClientOption {
 	return func(c *Grpc) {
-		c.dialOptions = opts
+		c.closeFunc = closeFunc
 	}
 }
 
 // Create client
 func (c *Grpc) Dial(name string, opts ...client.DialOption) (pool.Connection, error) {
-	dialOpts := make([]interface{}, len(c.dialOptions))
-	for i, opt := range opts {
-		dialOpts[i] = opt
-	}
-
 	address := c.Registry.ConnectionString(name, defaultScheme)
-	return c.pool.Get(address, dialOpts...)
+	return c.pool.Get(address)
 }
 
 // Call gRPC method
@@ -106,7 +98,7 @@ func (c *Grpc) Call(
 	res interface{},
 	opts ...client.CallOption,
 ) error {
-	conn, err := c.Dial(sc.GetServiceName(), sc.GetDialOptions()...)
+	conn, err := c.Dial(sc.GetServiceName())
 	if err != nil {
 		return err
 	}
@@ -134,7 +126,7 @@ func (c *Grpc) Stream(
 	req interface{},
 	opts ...client.CallOption,
 ) (client.StreamClient, error) {
-	conn, err := c.Dial(sc.GetServiceName(), sc.GetDialOptions()...)
+	conn, err := c.Dial(sc.GetServiceName())
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +151,7 @@ func (c *Grpc) Stream(
 		return nil, err
 	}
 
-	gs := &GrpcStreamClient{stream}
+	gs := &GrpcStreamClient{stream, conn}
 	if req == nil {
 		return gs, nil
 	}
@@ -171,25 +163,9 @@ func (c *Grpc) Stream(
 	return gs, nil
 }
 
-// Close - closes the connection to the gRPC service server
-// func (c *Grpc) Close() error {
-// 	c.RLock()
-// 	defer c.RUnlock()
-
-// 	if c.Connection != nil {
-// 		return c.Connection.Close()
-// 	}
-
-// 	return c.pool.add(c.address, c.Connection)
-// }
-
-// GetClientConn helper
-// func GetClientConn(g *Grpc) *grpc.ClientConn {
-// 	return g.cc
-// }
-
 type GrpcStreamClient struct {
 	stream grpc.ClientStream
+	conn   pool.Connection
 }
 
 func (sc *GrpcStreamClient) Recv(res interface{}) error {
@@ -214,4 +190,8 @@ func (sc *GrpcStreamClient) CloseAndRecv(res interface{}) error {
 	}
 
 	return nil
+}
+
+func (sc *GrpcStreamClient) CloseConn() error {
+	return sc.conn.Close()
 }
