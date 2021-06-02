@@ -69,7 +69,12 @@ func GetLogger() *zap.Logger {
 	if err != nil {
 		log.Println("ZapLogger failed!")
 	}
-	defer zapLogger.Sync()
+
+	defer func() {
+		if err := zapLogger.Sync(); err != nil {
+			log.Println("ZapLogger Sync failed")
+		}
+	}()
 
 	return zapLogger
 }

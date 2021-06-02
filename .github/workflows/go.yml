@@ -24,6 +24,7 @@ jobs:
     - name: goreadme
       uses: posener/goreadme@v1.4.0
       with:
+        recursive: true
         badge-codecov: true
         badge-godoc: true
         badge-goreportcard: true
