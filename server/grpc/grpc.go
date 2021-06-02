@@ -69,7 +69,12 @@ func GetLogger() *zap.Logger {
 	if err != nil {
 		log.Println("ZapLogger failed!")
 	}
-	defer zapLogger.Sync()
+
+	defer func() {
+		if err := zapLogger.Sync(); err != nil {
+			log.Println("ZapLogger Sync failed")
+		}
+	}()
 
 	return zapLogger
 }
@@ -176,7 +181,7 @@ func init() {
 	jLogger := jaegerlog.StdLogger
 	jMetricsFactory := metrics.NullFactory
 
-	tracer, _, err := otCfg.NewTracer(
+	tracer, _, _ := otCfg.NewTracer(
 		jaegercfg.Logger(jLogger),
 		jaegercfg.Metrics(jMetricsFactory),
 	)
