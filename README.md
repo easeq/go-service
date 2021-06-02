@@ -10,17 +10,35 @@
 
 * [client](./client)
 
+* [client/grpc](./client/grpc)
+
 * [db](./db)
 
 * [pool](./pool)
 
 * [protoc-gen-go-service](./protoc-gen-go-service)
 
+* [protoc-gen-go-service/example](./protoc-gen-go-service/example)
+
+* [protoc-gen-go-service/generator](./protoc-gen-go-service/generator)
+
+* [protoc-gen-go-service/options](./protoc-gen-go-service/options)
+
 * [registry](./registry)
+
+* [registry/consul](./registry/consul)
 
 * [server](./server)
 
+* [server/gateway](./server/gateway)
+
+* [server/grpc](./server/grpc)
+
 * [utils](./utils)
+
+* [utils/gateway](./utils/gateway)
+
+* [utils/redis](./utils/redis)
 
 ---
 Readme created from Go doc with [goreadme](https://github.com/posener/goreadme)

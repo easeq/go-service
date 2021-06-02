@@ -31,7 +31,9 @@ type ServiceOption func(*Service)
 // NewService creates a new service
 func NewService(opts ...ServiceOption) *Service {
 	cfg := new(Config)
-	cfg.UnmarshalEnv(goconfig.EnvSet())
+	if err := cfg.UnmarshalEnv(goconfig.EnvSet()); err != nil {
+		panic("Error loading env vars")
+	}
 
 	svc := &Service{
 		Config: cfg,
