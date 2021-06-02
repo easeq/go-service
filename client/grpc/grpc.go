@@ -39,7 +39,7 @@ type ClientOption func(*Grpc)
 
 // Grpc client that holds the reference to the pool,
 // along with other configuration required to create the pool
-// It holds a refrence to the service registry used by the service.
+// It holds a reference to the service registry used by the service.
 type Grpc struct {
 	pool      *pool.ConnectionPool
 	factory   pool.Factory
