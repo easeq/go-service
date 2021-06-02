@@ -14,7 +14,7 @@ import (
 	"github.com/easeq/go-service/server"
 )
 
-// ServiceConfig handles config required by the service
+// Service handles config required by the service
 type Service struct {
 	Server   server.Server
 	Broker   broker.Broker
@@ -89,7 +89,7 @@ func WithClient(client client.Client) ServiceOption {
 // 	}
 // }
 
-// Shutdown service and all the connections
+// ShutDown shuts down the service and all its associated connections
 func (s *Service) ShutDown(ctx context.Context) {
 	// graceful shutdown
 	signal.Notify(s.exit, os.Interrupt)

@@ -6,6 +6,7 @@ import (
 )
 
 const (
+	// TAGS_SEPARATOR is the separator used to split the tags passed in the tag env var for the specific service registry.
 	TAGS_SEPARATOR = ","
 )
 
@@ -14,6 +15,7 @@ type ErrRegistryRegFailed struct {
 	Value error
 }
 
+// Error returns the error string when service registration fails.
 func (e *ErrRegistryRegFailed) Error() string {
 	return fmt.Sprintf("service registration failed: [%s]", e.Value)
 }

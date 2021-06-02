@@ -3,7 +3,6 @@ package gateway
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -11,7 +10,6 @@ import (
 
 	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-redis-access-control/gateway"
-	"github.com/easeq/go-service/pool"
 	"github.com/easeq/go-service/registry"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 )
@@ -28,6 +26,7 @@ var (
 )
 
 const (
+	// SERVER_TYPE is the type of the server.
 	SERVER_TYPE = "gateway"
 )
 
@@ -94,20 +93,6 @@ func WithHTTPServiceHandlerRegistrar(registrar HTTPServiceHandlerRegistrar) Opti
 	}
 }
 
-// Client creates if not exists and returns the client to call the service
-func (g *Gateway) GetClient(address string) (pool.Connection, error) {
-	// var err error
-	// for i := 0; i < maxBadClientConnRetries; i++ {
-	// 	conn, err := g.getClientConn(address)
-	// 	if err == nil {
-	// 		return conn, nil
-	// 	}
-	// }
-
-	// return nil, err
-	return nil, fmt.Errorf("no avaialable client")
-}
-
 // Address returns the server address
 func (g *Gateway) Address() string {
 	return g.Config.Address()
@@ -133,7 +118,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 	return g.Server.ListenAndServe()
 }
 
-// Shutdown - gracefully stops the server
+// ShutDown - gracefully stops the server
 func (g *Gateway) ShutDown(ctx context.Context) error {
 	return g.Server.Shutdown(ctx)
 }

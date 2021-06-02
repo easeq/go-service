@@ -5,11 +5,13 @@ import (
 	goredis "github.com/go-redis/redis/v8"
 )
 
+// Redis hold the redis config and redis client
 type Redis struct {
 	*Config
 	Client *goredis.Client
 }
 
+// NewRedisClient creates a new redis client using the env config
 func NewRedisClient() *Redis {
 	cfg := GetConfig()
 

@@ -6,6 +6,7 @@ import (
 	"github.com/Netflix/go-env"
 )
 
+// Config defines the redis config
 type Config struct {
 	Network  string `env:"REDIS_NETWORK,default=tcp"`
 	Addr     string `env:"REDIS_ADDRESS,default=localhost:6379"`

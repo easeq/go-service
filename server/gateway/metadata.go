@@ -2,6 +2,7 @@ package gateway
 
 import "fmt"
 
+// Metadata holds the metadata used by the gateway server
 type Metadata struct {
 	GrpcHost string `env:"GRPC_HOST,default="`
 	GrpcPort int    `env:"GRPC_PORT,default=9090"`

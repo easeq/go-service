@@ -8,16 +8,20 @@ import (
 )
 
 var (
+	// ErrInvalidStream returned when the stream is invalid
 	ErrInvalidStream = errors.New("invalid client stream")
 )
 
 // Callback function for Call method
 type CallFn func(conn pool.Connection) error
 
+// CallOption is used to pass client call options
 type CallOption interface{}
 
+// DialOptions is used to pass clients' dial options
 type DialOption interface{}
 
+// Client interface to implement custom clients
 type Client interface {
 	// Call client method
 	Call(ctx context.Context, sc ServiceClient, method string, req interface{}, res interface{}, opts ...CallOption) error
@@ -27,6 +31,7 @@ type Client interface {
 	Dial(address string, opts ...DialOption) (pool.Connection, error)
 }
 
+// ServiceClient is used by the generated code to return service config
 type ServiceClient interface {
 	// Get service name of the client
 	GetServiceName() string
@@ -34,6 +39,7 @@ type ServiceClient interface {
 	GetDialOptions() []DialOption
 }
 
+// Stream interface is used by client implementation for streaming
 type StreamClient interface {
 	// Send request
 	Send(req interface{}) error

@@ -28,7 +28,7 @@ func (c *Config) Address() string {
 	return fmt.Sprintf("%s:%d", c.Host, c.Port)
 }
 
-// Consul tags
+// GetTags return the service registry tags slice
 func (c *Config) GetTags() []string {
 	if c.Tags == "" {
 		return []string{}

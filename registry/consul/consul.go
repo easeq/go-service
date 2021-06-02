@@ -64,6 +64,7 @@ func (c *Consul) Register(
 	return nil
 }
 
+// ConnectionString returns the formatted connection string using the config loaded
 func (c *Consul) ConnectionString(args ...interface{}) string {
 	return fmt.Sprintf(
 		"consul://%s/%s?scheme=%s",
@@ -78,6 +79,7 @@ func (c *Consul) Address() string {
 	return fmt.Sprintf("%s:%d", c.Host, c.Port)
 }
 
+// ToString returns the string name of the service registry
 func (c *Consul) ToString() string {
 	return "consul"
 }
