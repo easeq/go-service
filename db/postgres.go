@@ -58,7 +58,7 @@ func GetConfig() *Config {
 	return goconfig.NewEnvConfig(new(Config)).(*Config)
 }
 
-// Initialize database
+// Init database
 func (db *Postgres) Init() error {
 	// Run migrations
 	if err := db.Migrate(); err != nil {

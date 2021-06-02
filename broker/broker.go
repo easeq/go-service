@@ -2,10 +2,13 @@ package broker
 
 import "context"
 
+// Message sent by the Publisher
 type Message interface{}
 
+// Handler used by the subscriber
 type Handler interface{}
 
+// Broker interface for adding new brokers
 type Broker interface {
 	// Initialize
 	Init(ctx context.Context, args map[string]interface{}, opts ...interface{}) error

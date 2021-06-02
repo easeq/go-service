@@ -20,6 +20,10 @@ var (
 // Option to pass as arg while creating new service
 type Option func(*ConnectionPool)
 
+// ConnectionPool holds the connections in the pool,
+// alongwith the factory to create a new connection,
+// size of each type of connection in the pool,
+// and the CloseFunc callback used to close a specific connection in the pool
 type ConnectionPool struct {
 	conns     map[string](chan FactoryConn)
 	factory   Factory
@@ -60,6 +64,7 @@ func WithFactory(factory Factory) Option {
 	}
 }
 
+// WithCloseFunc passes the CloseFunc callback to the pool
 func WithCloseFunc(closeFunc CloseFunc) Option {
 	return func(p *ConnectionPool) {
 		p.CloseFunc = closeFunc
@@ -187,6 +192,8 @@ func (p *ConnectionPool) Close() error {
 	return nil
 }
 
+// ClientConn holds the function created by the pool factory method.
+// It also keeps the address, and a reference to the parent pool
 type ClientConn struct {
 	conn    FactoryConn
 	address string

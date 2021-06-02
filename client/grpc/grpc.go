@@ -24,7 +24,7 @@ var (
 	ErrInvalidRegistry = errors.New("registry provided is invalid")
 	// ErrTooFewArgs returned when the args provided is less the args required
 	ErrTooFewArgs = errors.New("too few arguments. Required 3")
-	// ErrTooFewArgs returned when the args provided is less the args required
+	// ErrTooFewFactoryArgs returned when the args provided is less the args required
 	ErrTooFewFactoryArgs = errors.New("too few arguments for the factory. Required 1 address")
 	// ErrInvalidDialOptions returned when the dial options provided are not valid
 	ErrInvalidDialOptions = errors.New("dial options provided are invalid")
@@ -34,12 +34,14 @@ var (
 	ErrInvalidStreamDescription = errors.New("invalid stream description")
 )
 
-// ServiceOption to pass as arg while creating new service
+// ClientOption to pass as arg while creating new service
 type ClientOption func(*Grpc)
 
+// Grpc client that holds the reference to the pool,
+// along with other configuration required to create the pool
+// It holds a refrence to the service registry used by the service.
 type Grpc struct {
-	pool *pool.ConnectionPool
-	// cc       *grpc.ClientConn
+	pool      *pool.ConnectionPool
 	factory   pool.Factory
 	closeFunc pool.CloseFunc
 	Registry  registry.ServiceRegistry
@@ -57,7 +59,6 @@ func NewGrpc(opts ...ClientOption) *Grpc {
 		pool.WithFactory(c.factory),
 		pool.WithSize(10),
 		pool.WithCloseFunc(c.closeFunc),
-		// pool.WithPoolConnectionFactory(GrpcClientConn),
 	)
 
 	return c
@@ -77,13 +78,14 @@ func WithFactory(factory pool.Factory) ClientOption {
 	}
 }
 
+// WithCloseFunc passes the callback function to close the gRPC connection in the pool
 func WithCloseFunc(closeFunc pool.CloseFunc) ClientOption {
 	return func(c *Grpc) {
 		c.closeFunc = closeFunc
 	}
 }
 
-// Create client
+// Dial creates/gets a connection from the pool using the address from the service registry
 func (c *Grpc) Dial(name string, opts ...client.DialOption) (pool.Connection, error) {
 	address := c.Registry.ConnectionString(name, defaultScheme)
 	return c.pool.Get(address)
@@ -118,6 +120,7 @@ func (c *Grpc) Call(
 	return cc.Invoke(ctx, method, req, res, callOpts...)
 }
 
+// Stream gRPC method
 func (c *Grpc) Stream(
 	ctx context.Context,
 	sc client.ServiceClient,
@@ -163,11 +166,13 @@ func (c *Grpc) Stream(
 	return gs, nil
 }
 
+// GrpcStreamClient is the gRPC client that allows streaming. It holds the stream and the connection to the gRPC server.
 type GrpcStreamClient struct {
 	stream grpc.ClientStream
 	conn   pool.Connection
 }
 
+// Recv receive a message from the stream
 func (sc *GrpcStreamClient) Recv(res interface{}) error {
 	if err := sc.stream.RecvMsg(res); err != nil {
 		return err
@@ -176,10 +181,12 @@ func (sc *GrpcStreamClient) Recv(res interface{}) error {
 	return nil
 }
 
+// Send sends a message
 func (sc *GrpcStreamClient) Send(req interface{}) error {
 	return sc.stream.SendMsg(req)
 }
 
+// CloseAndRecv, first close the server stream and receives messages on the client stream
 func (sc *GrpcStreamClient) CloseAndRecv(res interface{}) error {
 	if err := sc.stream.CloseSend(); err != nil {
 		return err
@@ -192,6 +199,7 @@ func (sc *GrpcStreamClient) CloseAndRecv(res interface{}) error {
 	return nil
 }
 
+// CloseConn closes the connection in the pool if the pool is full or adds it back to the pool
 func (sc *GrpcStreamClient) CloseConn() error {
 	return sc.conn.Close()
 }

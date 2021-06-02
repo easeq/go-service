@@ -9,6 +9,7 @@ import (
 	"google.golang.org/protobuf/compiler/protogen"
 )
 
+// Generator holds the config used to generate the files
 type Generator struct {
 	FilenamePrefix string
 	GoPackageName  protogen.GoPackageName
@@ -20,7 +21,7 @@ type Generator struct {
 	Imports        map[string]bool
 }
 
-// generateFile generates a _ascii.pb.go file containing gRPC service definitions.
+// GenerateFile generates a _ascii.pb.go file containing gRPC service definitions.
 func (g *Generator) GenerateFile() *protogen.GeneratedFile {
 	filename := g.FilenamePrefix + ".pb.gs.go"
 	gf := g.Gen.NewGeneratedFile(filename, g.GoImportPath)

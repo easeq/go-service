@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	goconfig "github.com/easeq/go-config"
-	"github.com/easeq/go-service/pool"
 	"github.com/easeq/go-service/registry"
 
 	"github.com/opentracing/opentracing-go"
@@ -28,6 +27,7 @@ var (
 )
 
 const (
+	// SERVER_TYPE is the type of the server.
 	SERVER_TYPE = "grpc"
 )
 
@@ -63,7 +63,7 @@ func NewGrpc(opts ...Option) *Grpc {
 	return g
 }
 
-// Get zap logger
+// GetLogger returns a new zap.Logger
 func GetLogger() *zap.Logger {
 	zapLogger, err := zap.NewProduction()
 	if err != nil {
@@ -94,28 +94,6 @@ func WithGRPCDialOptions(opts ...grpc.DialOption) Option {
 // 		g.Broker = opts
 // 	}
 // }
-
-// func (g *Grpc) getClientConn(name string) (pool.Connection, error) {
-// 	conn, err := g.ClientPool.Get(name)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return conn, nil
-// }
-
-// Client creates if not exists and returns the client to call the service
-func (g *Grpc) GetClient(address string) (pool.Connection, error) {
-	var err error
-	// for i := 0; i < maxBadClientConnRetries; i++ {
-	// 	conn, err := g.getClientConn(address)
-	// 	if err == nil {
-	// 		return conn, nil
-	// 	}
-	// }
-
-	return nil, err
-}
 
 // Address returns the server address
 func (g *Grpc) Address() string {
@@ -148,7 +126,7 @@ func (g *Grpc) Run(ctx context.Context) error {
 	return g.Server.Serve(listener)
 }
 
-// Shutdown - gracefully stops the server
+// ShutDown - gracefully stops the server
 func (g *Grpc) ShutDown(ctx context.Context) error {
 	g.Server.GracefulStop()
 	return nil
