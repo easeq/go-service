@@ -176,7 +176,7 @@ func init() {
 	jLogger := jaegerlog.StdLogger
 	jMetricsFactory := metrics.NullFactory
 
-	tracer, _, err := otCfg.NewTracer(
+	tracer, _, _ := otCfg.NewTracer(
 		jaegercfg.Logger(jLogger),
 		jaegercfg.Metrics(jMetricsFactory),
 	)

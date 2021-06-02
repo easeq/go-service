@@ -64,7 +64,10 @@ func TestUnmarshalEnv(t *testing.T) {
 				t.Errorf("Error loading EnvSet for %s", tt.name)
 			}
 
-			tt.emptyConfig.UnmarshalEnv(envSet)
+			if err := tt.emptyConfig.UnmarshalEnv(envSet); err != nil {
+				t.Errorf("Error unmarshaling env")
+			}
+
 			if tt.emptyConfig != tt.want {
 				t.Errorf("Unmarshalenv %s failed, got(%v) want(%v)", tt.name, tt.emptyConfig, tt.want)
 			}
