@@ -48,6 +48,7 @@ type Grpc struct {
 	sync.RWMutex
 }
 
+// NewGrpc creates a new gRPC client
 func NewGrpc(opts ...ClientOption) *Grpc {
 	c := new(Grpc)
 
@@ -186,7 +187,7 @@ func (sc *GrpcStreamClient) Send(req interface{}) error {
 	return sc.stream.SendMsg(req)
 }
 
-// CloseAndRecv, first close the server stream and receives messages on the client stream
+// CloseAndRecv first close the server stream and receives messages on the client stream
 func (sc *GrpcStreamClient) CloseAndRecv(res interface{}) error {
 	if err := sc.stream.CloseSend(); err != nil {
 		return err

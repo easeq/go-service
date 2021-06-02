@@ -45,7 +45,7 @@ type Grpc struct {
 // Option to pass as arg while creating new service
 type Option func(*Grpc)
 
-// NewGrpc creates a new gRPC
+// NewGrpc creates a new gRPC server
 func NewGrpc(opts ...Option) *Grpc {
 	g := &Grpc{
 		DialOptions:   []grpc.DialOption{grpc.WithInsecure()},

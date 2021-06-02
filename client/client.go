@@ -12,13 +12,13 @@ var (
 	ErrInvalidStream = errors.New("invalid client stream")
 )
 
-// Callback function for Call method
+// CallFn function for Call method
 type CallFn func(conn pool.Connection) error
 
 // CallOption is used to pass client call options
 type CallOption interface{}
 
-// DialOptions is used to pass clients' dial options
+// DialOption is used to pass clients' dial options
 type DialOption interface{}
 
 // Client interface to implement custom clients
@@ -39,7 +39,7 @@ type ServiceClient interface {
 	GetDialOptions() []DialOption
 }
 
-// Stream interface is used by client implementation for streaming
+// StreamClient interface is used by client implementation for streaming
 type StreamClient interface {
 	// Send request
 	Send(req interface{}) error
