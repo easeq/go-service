@@ -40,7 +40,7 @@ func TestUnmarshalEnv(t *testing.T) {
 			emptyConfig: Config{},
 			want: Config{
 				Name:           "test-db-name",
-				User:           "test-db-user",
+				User:           "test-db-username",
 				Password:       "test-db-password",
 				Driver:         "mysql",
 				Host:           "test-db-host",
