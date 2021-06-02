@@ -1,0 +1,38 @@
+name: Go
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.16
+
+    - name: goreadme
+      uses: posener/goreadme@v1.4.0
+      with:
+        badge-codecov: true
+        badge-godoc: true
+        badge-goreportcard: true
+
+    - name: Generate coverage report
+      run: |
+        go test `go list ./... | grep -v examples` -coverprofile=coverage.txt -covermode=atomic
+
+    - name: Upload coverage report
+      uses: codecov/codecov-action@v1.0.2
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.txt
+        flags: unittests
+        name: codecov-umbrella
