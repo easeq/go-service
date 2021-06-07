@@ -11,13 +11,13 @@ type Handler interface{}
 // Broker interface for adding new brokers
 type Broker interface {
 	// Initialize
-	Init(ctx context.Context, args map[string]interface{}, opts ...interface{}) error
+	Init(ctx context.Context, opts ...interface{}) error
 	// Publish a message
-	Publish(ctx context.Context, subject string, message []byte) error
+	Publish(ctx context.Context, topic string, message Message) error
 	// Subscribe to a subject
-	Subscribe(ctx context.Context, subject string, handler Handler, opts ...interface{}) error
+	Subscribe(ctx context.Context, topic string, handler Handler, opts ...interface{}) error
 	// Unsubscribe from a subject
-	Unsubscribe(subject string) error
+	Unsubscribe(topic string) error
 	// Close a connection
 	Close() error
 }

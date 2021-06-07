@@ -129,6 +129,12 @@ func (s *Service) Run(ctx context.Context) error {
 		}
 	}
 
+	if s.Broker != nil {
+		if err := s.Broker.Init(ctx); err != nil {
+			return err
+		}
+	}
+
 	err := s.Server.Run(ctx)
 	if err != nil {
 		return err
