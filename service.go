@@ -103,6 +103,13 @@ func (s *Service) ShutDown(ctx context.Context) {
 				s.Database.Close()
 			}
 
+			if s.Broker != nil {
+				log.Println("Closing broker")
+				if err := s.Broker.Close(); err != nil {
+					log.Println("Error closing broker", err)
+				}
+			}
+
 			if s.Server != nil {
 				log.Println("Shutting down server...")
 				if err := s.Server.ShutDown(ctx); err != nil {
@@ -118,26 +125,32 @@ func (s *Service) ShutDown(ctx context.Context) {
 // Run runs both the HTTP and gRPC server
 func (s *Service) Run(ctx context.Context) error {
 	if s.Database != nil {
+		log.Println("Initialize database...")
 		if err := s.Database.Init(); err != nil {
 			return err
 		}
 	}
 
 	if s.Server != nil && s.Registry != nil {
+		log.Println("Register services...")
 		if err := s.Server.Register(ctx, s.Name, s.Registry); err != nil {
 			return err
 		}
 	}
 
 	if s.Broker != nil {
+		log.Println("Initialize broker...")
 		if err := s.Broker.Init(ctx); err != nil {
 			return err
 		}
 	}
 
-	err := s.Server.Run(ctx)
-	if err != nil {
-		return err
+	if s.Server != nil {
+		log.Println("Run server...")
+		err := s.Server.Run(ctx)
+		if err != nil {
+			return err
+		}
 	}
 
 	s.ShutDown(ctx)

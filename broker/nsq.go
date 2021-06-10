@@ -24,7 +24,8 @@ type Nsq struct {
 // NewNsq returns a new instance of NSQ
 func NewNsq() *Nsq {
 	return &Nsq{
-		Config: goconfig.NewEnvConfig(new(Config)).(*Config),
+		Consumers: make(map[string]*nsq.Consumer),
+		Config:    goconfig.NewEnvConfig(new(Config)).(*Config),
 	}
 }
 
@@ -62,6 +63,7 @@ func (n *Nsq) Subscribe(ctx context.Context, topic string, handler Handler, opts
 	}
 
 	consumer.AddHandler(nsqHandler)
+
 	if err := consumer.ConnectToNSQLookupd(n.Config.Lookupd.Address()); err != nil {
 		return err
 	}
