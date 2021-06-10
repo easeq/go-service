@@ -94,30 +94,34 @@ func (s *Service) ShutDown(ctx context.Context) {
 	// graceful shutdown
 	signal.Notify(s.exit, os.Interrupt)
 	go func() {
-		for range s.exit {
-			log.Println("Shutting down service")
+		select {
+		case <-s.exit:
+			goto exit
+		case <-ctx.Done():
+			goto exit
+		}
 
-			// sig is a ^C, handle it
-			if s.Database != nil {
-				log.Println("Closing DB connection")
-				s.Database.Close()
+	exit:
+		log.Println("Shutting down service")
+
+		// sig is a ^C, handle it
+		if s.Database != nil {
+			log.Println("Closing DB connection")
+			s.Database.Close()
+		}
+
+		if s.Broker != nil {
+			log.Println("Closing broker")
+			if err := s.Broker.Close(); err != nil {
+				log.Println("Error closing broker", err)
 			}
+		}
 
-			if s.Broker != nil {
-				log.Println("Closing broker")
-				if err := s.Broker.Close(); err != nil {
-					log.Println("Error closing broker", err)
-				}
+		if s.Server != nil {
+			log.Println("Shutting down server...")
+			if err := s.Server.ShutDown(ctx); err != nil {
+				log.Println("Error shutting down server", err)
 			}
-
-			if s.Server != nil {
-				log.Println("Shutting down server...")
-				if err := s.Server.ShutDown(ctx); err != nil {
-					log.Println("Error shutting down server", err)
-				}
-			}
-
-			<-ctx.Done()
 		}
 	}()
 }
@@ -145,6 +149,8 @@ func (s *Service) Run(ctx context.Context) error {
 		}
 	}
 
+	s.ShutDown(ctx)
+
 	if s.Server != nil {
 		log.Println("Run server...")
 		err := s.Server.Run(ctx)
@@ -152,8 +158,6 @@ func (s *Service) Run(ctx context.Context) error {
 			return err
 		}
 	}
-
-	s.ShutDown(ctx)
 
 	return nil
 }
