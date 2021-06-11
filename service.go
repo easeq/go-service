@@ -12,6 +12,7 @@ import (
 	"github.com/easeq/go-service/db"
 	"github.com/easeq/go-service/registry"
 	"github.com/easeq/go-service/server"
+	"github.com/easeq/go-service/utils"
 )
 
 // Service handles config required by the service
@@ -94,47 +95,81 @@ func (s *Service) ShutDown(ctx context.Context) {
 	// graceful shutdown
 	signal.Notify(s.exit, os.Interrupt)
 	go func() {
-		for range s.exit {
-			log.Println("Shutting down service")
+		select {
+		case <-s.exit:
+			goto exit
+		case <-ctx.Done():
+			goto exit
+		}
 
-			// sig is a ^C, handle it
-			if s.Database != nil {
-				log.Println("Closing DB connection")
-				s.Database.Close()
+	exit:
+		log.Println("Shutting down service")
+
+		// sig is a ^C, handle it
+		if s.Database != nil {
+			log.Println("Closing DB connection")
+			s.Database.Close()
+		}
+
+		if s.Broker != nil {
+			log.Println("Closing broker")
+			if err := s.Broker.Close(); err != nil {
+				log.Println("Error closing broker", err)
 			}
+		}
 
-			if s.Server != nil {
-				log.Println("Shutting down server...")
-				if err := s.Server.ShutDown(ctx); err != nil {
-					log.Println("Error shutting down server", err)
-				}
+		if s.Server != nil {
+			log.Println("Shutting down server...")
+			if err := s.Server.ShutDown(ctx); err != nil {
+				log.Println("Error shutting down server", err)
 			}
-
-			<-ctx.Done()
 		}
 	}()
 }
 
+func (s *Service) RunResource(ctx context.Context, r interface{}) <-chan error {
+	if r == nil {
+		return nil
+	}
+
+	cErr := make(chan error, 1)
+
+	go func() {
+		defer close(cErr)
+
+		switch v := r.(type) {
+		case db.ServiceDatabase:
+			log.Println("Initilaize database...")
+			if err := v.Init(); err != nil {
+				cErr <- err
+			}
+		case registry.ServiceRegistry:
+			log.Println("Register services...")
+			if err := v.Register(ctx, s.Name, s.Server); err != nil {
+				cErr <- err
+			}
+		case broker.Broker:
+			log.Println("Initialize broker...")
+			if err := v.Run(ctx); err != nil {
+				cErr <- err
+			}
+		case server.Server:
+			log.Println("Run server...")
+			if err := v.Run(ctx); err != nil {
+				cErr <- err
+			}
+		}
+	}()
+
+	return cErr
+}
+
 // Run runs both the HTTP and gRPC server
 func (s *Service) Run(ctx context.Context) error {
-	if s.Database != nil {
-		if err := s.Database.Init(); err != nil {
-			return err
-		}
-	}
-
-	if s.Server != nil && s.Registry != nil {
-		if err := s.Server.Register(ctx, s.Name, s.Registry); err != nil {
-			return err
-		}
-	}
-
-	err := s.Server.Run(ctx)
-	if err != nil {
-		return err
-	}
-
-	s.ShutDown(ctx)
-
-	return nil
+	return utils.WaitForError(
+		s.RunResource(ctx, s.Database),
+		s.RunResource(ctx, s.Registry),
+		s.RunResource(ctx, s.Broker),
+		s.RunResource(ctx, s.Server),
+	)
 }
