@@ -3,6 +3,8 @@ package registry
 import (
 	"context"
 	"fmt"
+
+	"github.com/easeq/go-service/server"
 )
 
 const (
@@ -22,8 +24,8 @@ func (e *ErrRegistryRegFailed) Error() string {
 
 // ServiceRegistry - service registry
 type ServiceRegistry interface {
-	// Registers the service
-	Register(ctx context.Context, name string, host string, port int, tags ...string) *ErrRegistryRegFailed
+	// Registers the service server
+	Register(ctx context.Context, name string, server server.Server) *ErrRegistryRegFailed
 	// Address returns the address of the registry
 	Address() string
 	// ConnectionString returns the full formatted connection string

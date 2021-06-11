@@ -105,19 +105,34 @@ func (g *Grpc) Address() string {
 	return g.Config.Address()
 }
 
+// Host returns gRPC server hostname
+func (g *Grpc) Host() string {
+	return g.Config.Host
+}
+
+// Port returns gRPC server port
+func (g *Grpc) Port() int {
+	return g.Config.Port
+}
+
+// RegistryTags returns gRPC server registry tags
+func (g *Grpc) RegistryTags() []string {
+	return g.Config.GetTags()
+}
+
 // GetMetadata returns the metadata by key
 func (g *Grpc) GetMetadata(key string) interface{} {
 	return nil
 }
 
 // Register registers the grpc server with the service registry
-func (g *Grpc) Register(
-	ctx context.Context,
-	name string,
-	registry registry.ServiceRegistry,
-) *registry.ErrRegistryRegFailed {
-	return registry.Register(ctx, name, g.Host, g.Port, g.GetTags()...)
-}
+// func (g *Grpc) Register(
+// 	ctx context.Context,
+// 	name string,
+// 	registry registry.ServiceRegistry,
+// ) *registry.ErrRegistryRegFailed {
+// 	return registry.Register(ctx, name, g.Host, g.Port, g.GetTags()...)
+// }
 
 // Run runs gRPC service
 func (g *Grpc) Run(ctx context.Context) error {

@@ -12,6 +12,7 @@ import (
 	"github.com/easeq/go-service/db"
 	"github.com/easeq/go-service/registry"
 	"github.com/easeq/go-service/server"
+	"github.com/easeq/go-service/utils"
 )
 
 // Service handles config required by the service
@@ -126,38 +127,49 @@ func (s *Service) ShutDown(ctx context.Context) {
 	}()
 }
 
+func (s *Service) RunResource(ctx context.Context, r interface{}) <-chan error {
+	if r == nil {
+		return nil
+	}
+
+	cErr := make(chan error, 1)
+
+	go func() {
+		defer close(cErr)
+
+		switch v := r.(type) {
+		case db.ServiceDatabase:
+			log.Println("Initilaize database...")
+			if err := v.Init(); err != nil {
+				cErr <- err
+			}
+		case registry.ServiceRegistry:
+			log.Println("Register services...")
+			if err := v.Register(ctx, s.Name, s.Server); err != nil {
+				cErr <- err
+			}
+		case broker.Broker:
+			log.Println("Initialize broker...")
+			if err := v.Run(ctx); err != nil {
+				cErr <- err
+			}
+		case server.Server:
+			log.Println("Run server...")
+			if err := v.Run(ctx); err != nil {
+				cErr <- err
+			}
+		}
+	}()
+
+	return cErr
+}
+
 // Run runs both the HTTP and gRPC server
 func (s *Service) Run(ctx context.Context) error {
-	if s.Database != nil {
-		log.Println("Initialize database...")
-		if err := s.Database.Init(); err != nil {
-			return err
-		}
-	}
-
-	if s.Server != nil && s.Registry != nil {
-		log.Println("Register services...")
-		if err := s.Server.Register(ctx, s.Name, s.Registry); err != nil {
-			return err
-		}
-	}
-
-	if s.Broker != nil {
-		log.Println("Initialize broker...")
-		if err := s.Broker.Init(ctx); err != nil {
-			return err
-		}
-	}
-
-	s.ShutDown(ctx)
-
-	if s.Server != nil {
-		log.Println("Run server...")
-		err := s.Server.Run(ctx)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return utils.WaitForError(
+		s.RunResource(ctx, s.Database),
+		s.RunResource(ctx, s.Registry),
+		s.RunResource(ctx, s.Broker),
+		s.RunResource(ctx, s.Server),
+	)
 }
