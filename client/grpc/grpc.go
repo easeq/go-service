@@ -106,6 +106,7 @@ func (c *Grpc) Call(
 		return err
 	}
 
+	// Put the connection back or close connection
 	defer pcc.Close()
 
 	cc, ok := pcc.Conn().(*grpc.ClientConn)
