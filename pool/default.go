@@ -198,7 +198,6 @@ type ClientConn struct {
 	conn    FactoryConn
 	address string
 	p       *ConnectionPool
-	sync.RWMutex
 }
 
 // Address returns the factory connection address
@@ -213,12 +212,5 @@ func (cc *ClientConn) Conn() FactoryConn {
 
 // Close - closes the connection to the gRPC service server
 func (cc *ClientConn) Close() error {
-	cc.RLock()
-	defer cc.RUnlock()
-
-	if cc.conn != nil {
-		return cc.p.CloseFunc(cc.conn)
-	}
-
 	return cc.p.add(cc.address, cc.conn)
 }
