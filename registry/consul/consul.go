@@ -7,6 +7,7 @@ import (
 
 	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/registry"
+	"github.com/easeq/go-service/server"
 
 	"github.com/Netflix/go-env"
 	"github.com/easeq/go-consul-registry/v2/consul"
@@ -45,18 +46,16 @@ func NewConsul() *Consul {
 func (c *Consul) Register(
 	ctx context.Context,
 	name string,
-	host string,
-	port int,
-	tags ...string,
+	server server.Server,
 ) *registry.ErrRegistryRegFailed {
 	if err := consul.Register(
 		ctx,
 		name,
-		host,
-		port,
+		server.Host(),
+		server.Port(),
 		c.Address(),
 		c.TTL,
-		tags...,
+		server.RegistryTags()...,
 	); err != nil {
 		return &registry.ErrRegistryRegFailed{Value: err}
 	}

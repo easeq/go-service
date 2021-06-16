@@ -2,6 +2,8 @@ module github.com/easeq/go-service
 
 go 1.16
 
+replace github.com/easeq/go-service => ./go-service
+
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.0 // indirect
 	github.com/Netflix/go-env v0.0.0-20210215222557-e437a7e7f9fb

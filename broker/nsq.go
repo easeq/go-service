@@ -24,18 +24,22 @@ type Nsq struct {
 // NewNsq returns a new instance of NSQ
 func NewNsq() *Nsq {
 	return &Nsq{
-		Config: goconfig.NewEnvConfig(new(Config)).(*Config),
+		Consumers: make(map[string]*nsq.Consumer),
+		Config:    goconfig.NewEnvConfig(new(Config)).(*Config),
 	}
 }
 
-// Init initializes the broker
-func (n *Nsq) Init(ctx context.Context, opts ...interface{}) error {
+// Run the broker until it's stopped
+func (n *Nsq) Run(ctx context.Context, opts ...interface{}) error {
 	producer, err := nsq.NewProducer(n.Config.Producer.Address(), n.NSQConfig())
 	if err != nil {
 		return err
 	}
 
 	n.Producer = producer
+
+	<-ctx.Done()
+
 	return nil
 }
 
@@ -62,6 +66,11 @@ func (n *Nsq) Subscribe(ctx context.Context, topic string, handler Handler, opts
 	}
 
 	consumer.AddHandler(nsqHandler)
+
+	if err := consumer.ConnectToNSQD(n.Config.Producer.Address()); err != nil {
+		return err
+	}
+
 	if err := consumer.ConnectToNSQLookupd(n.Config.Lookupd.Address()); err != nil {
 		return err
 	}

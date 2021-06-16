@@ -98,18 +98,24 @@ func (g *Gateway) Address() string {
 	return g.Config.Address()
 }
 
+// Host returns gateway server hostname
+func (g *Gateway) Host() string {
+	return g.Config.Host
+}
+
+// Port returns gateway server port
+func (g *Gateway) Port() int {
+	return g.Config.Port
+}
+
+// RegistryTags returns gateway server registry tags
+func (g *Gateway) RegistryTags() []string {
+	return g.Config.GetTags()
+}
+
 // GetMetadata returns the metadata by key
 func (g *Gateway) GetMetadata(key string) interface{} {
 	return g.Metadata.Get(key)
-}
-
-// Register registers the grpc server with the service registry
-func (g *Gateway) Register(
-	ctx context.Context,
-	name string,
-	registry registry.ServiceRegistry,
-) *registry.ErrRegistryRegFailed {
-	return registry.Register(ctx, name, g.Host, g.Port, g.GetTags()...)
 }
 
 // Run runs the HTTP server

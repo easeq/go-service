@@ -10,8 +10,8 @@ type Handler interface{}
 
 // Broker interface for adding new brokers
 type Broker interface {
-	// Initialize
-	Init(ctx context.Context, opts ...interface{}) error
+	// Run broker
+	Run(ctx context.Context, opts ...interface{}) error
 	// Publish a message
 	Publish(ctx context.Context, topic string, message Message) error
 	// Subscribe to a subject
