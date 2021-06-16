@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/Netflix/go-env"
+	goconfig "github.com/easeq/go-config"
 )
 
 // Config defines the redis config
@@ -29,6 +30,11 @@ type Config struct {
 	PoolTimeout        time.Duration `env:"REDIS_POOL_TIMEOUT,default="`
 	IdleTimeout        time.Duration `env:"REDIS_IDLE_TIMEOUT,default="`
 	IdleCheckFrequency time.Duration `env:"REDIS_IDLE_CHEKC_FREQUENCY,default=60s"`
+}
+
+// NewConfig returns the env config for redis client
+func NewConfig() *Config {
+	return goconfig.NewEnvConfig(new(Config)).(*Config)
 }
 
 // UnmarshalEnv env.EnvSet to Config

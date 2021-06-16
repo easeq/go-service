@@ -29,7 +29,7 @@ func NewNsq() *Nsq {
 	}
 }
 
-// Init initializes the broker
+// Run the broker until it's stopped
 func (n *Nsq) Run(ctx context.Context, opts ...interface{}) error {
 	producer, err := nsq.NewProducer(n.Config.Producer.Address(), n.NSQConfig())
 	if err != nil {
