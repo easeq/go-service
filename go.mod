@@ -13,14 +13,14 @@ require (
 	github.com/go-redis/redis/v8 v8.6.0
 	github.com/go-test/deep v1.0.7
 	github.com/golang-migrate/migrate/v4 v4.14.1
-	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/nsqio/go-nsq v1.0.8
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/stretchr/testify v1.7.0
 	github.com/uber/jaeger-client-go v2.27.0+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
-	go.uber.org/zap v1.16.0
-	google.golang.org/grpc v1.36.0
+	go.etcd.io/etcd/client/v3 v3.5.0
+	go.uber.org/zap v1.17.0
+	google.golang.org/grpc v1.38.0
 	google.golang.org/protobuf v1.26.0
 )

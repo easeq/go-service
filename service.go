@@ -10,6 +10,7 @@ import (
 	"github.com/easeq/go-service/broker"
 	"github.com/easeq/go-service/client"
 	"github.com/easeq/go-service/db"
+	"github.com/easeq/go-service/kvstore"
 	"github.com/easeq/go-service/registry"
 	"github.com/easeq/go-service/server"
 	"github.com/easeq/go-service/utils"
@@ -22,6 +23,7 @@ type Service struct {
 	Database db.ServiceDatabase
 	Registry registry.ServiceRegistry
 	Client   client.Client
+	KVStore  kvstore.KVStore
 	exit     chan os.Signal
 	*Config
 }
@@ -83,6 +85,13 @@ func WithClient(client client.Client) ServiceOption {
 	}
 }
 
+// WithKVStore passes the kvstore used by the service
+func WithKVStore(kvStore kvstore.KVStore) ServiceOption {
+	return func(s *Service) {
+		s.KVStore = kvStore
+	}
+}
+
 // // WithLogger sets the logger used by the service
 // func WithLogger(logger logger.Logger) ServiceOption {
 // 	return func(s *Service) {
@@ -115,6 +124,13 @@ func (s *Service) ShutDown(ctx context.Context) {
 			log.Println("Closing broker")
 			if err := s.Broker.Close(); err != nil {
 				log.Println("Error closing broker", err)
+			}
+		}
+
+		if s.KVStore != nil {
+			log.Println("Closing KVStore")
+			if err := s.KVStore.Close(); err != nil {
+				log.Println("Error closing KVStore client", err)
 			}
 		}
 

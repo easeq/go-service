@@ -15,16 +15,18 @@ type SetOpt interface{}
 type GetOpt interface{}
 
 // Handler for the subscribe action
-type Handler interface{}
+type Handler interface {
+	Handle(key string, args ...interface{})
+}
 
 // KVStore is a key-value data storage interface
 type KVStore interface {
 	// Init initializes the store with the given options
 	Init(opts ...Option) error
 	// Put the value for the key
-	Put(ctx context.Context, record Record, opts ...SetOpt) error
+	Put(ctx context.Context, record Record, opts ...SetOpt) (*Record, error)
 	// Get the value for the key
-	Get(ctx context.Context, key string, opts ...GetOpt) (Record, error)
+	Get(ctx context.Context, key string, opts ...GetOpt) ([]*Record, error)
 	// Delete the key from the store
 	Delete(ctx context.Context, key string) error
 	// Subscribe to the changes made to the given key
@@ -45,4 +47,6 @@ type Record struct {
 	Value []byte `json:"value"`
 	// Expiry is the time to expire a record
 	Expiry time.Duration `json:"expiry,omitempty"`
+	// Metadata is the metadata of the record
+	Metadata map[string]interface{} `json:"metadata"`
 }
