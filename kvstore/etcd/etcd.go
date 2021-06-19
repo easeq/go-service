@@ -12,15 +12,12 @@ import (
 var (
 	// ErrInvalidLeaseID returned when the leaseID provided is invalid
 	ErrInvalidLeaseID = errors.New("invalid etcd leaseID passed")
-	// ErrNonExistentWatcher returned when trying to close a non-existent watch chan
-	ErrNonExistentWatcher = errors.New("trying to close non-existent watch channel")
 )
 
 // Etcd holds our etcd instance
 type Etcd struct {
 	*clientv3.Client
 	*Config
-	watchers map[string]clientv3.WatchChan
 }
 
 // NewEtcd returns a new instance of etcd with etcd client and config
@@ -34,7 +31,7 @@ func NewEtcd(config *Config) *Etcd {
 		panic("Error creating an kvstore etcd client")
 	}
 
-	return &Etcd{client, config, make(map[string]clientv3.WatchChan)}
+	return &Etcd{client, config}
 }
 
 // Init initializes the store with the given options
@@ -162,8 +159,6 @@ func (e *Etcd) Delete(ctx context.Context, key string) error {
 func (e *Etcd) Subscribe(ctx context.Context, key string, handler kvstore.Handler) error {
 	cWatch := e.Client.Watch(ctx, key)
 	log.Printf("set WATCH on %s", key)
-
-	e.watchers[key] = cWatch
 
 	for {
 		watchResp, ok := <-cWatch
