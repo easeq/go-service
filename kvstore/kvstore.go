@@ -16,6 +16,7 @@ type GetOpt interface{}
 
 // Handler for the subscribe action
 type Handler interface {
+	// Handle the subscription for the given key
 	Handle(key string, args ...interface{})
 }
 
