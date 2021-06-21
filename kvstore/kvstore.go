@@ -17,7 +17,13 @@ type GetOpt interface{}
 // Handler for the subscribe action
 type Handler interface {
 	// Handle the subscription for the given key
-	Handle(key string, args ...interface{})
+	Handle(key string, args ...interface{}) error
+}
+
+// TxnHandler is the interface for handling transactions
+type TxnHandler interface {
+	// Handle the transaction
+	Handle(ctx context.Context, store KVStore) error
 }
 
 // KVStore is a key-value data storage interface
@@ -30,6 +36,8 @@ type KVStore interface {
 	Get(ctx context.Context, key string, opts ...GetOpt) ([]*Record, error)
 	// Delete the key from the store
 	Delete(ctx context.Context, key string) error
+	// Txn handles transactions
+	Txn(ctx context.Context, handler TxnHandler) error
 	// Subscribe to the changes made to the given key
 	Subscribe(ctx context.Context, key string, handler Handler) error
 	// Unsubscribe from a subscription

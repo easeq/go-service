@@ -122,6 +122,12 @@ func (e *Etcd) Put(ctx context.Context, record kvstore.Record, opts ...kvstore.S
 	// Set the leaseID created/renewed
 	record.Metadata["lease_id"] = leaseID
 
+	e.Client.Txn(ctx).
+		If(clientv3.Compare(clientv3.Value(record.Key), "==", 1)).
+		Then(clientv3.OpPut(record.Key, string(record.Value))).
+		Else(clientv3.OpPut(record.Key, string(record.Value))).
+		Commit()
+
 	return &record, nil
 }
 
@@ -155,6 +161,11 @@ func (e *Etcd) Delete(ctx context.Context, key string) error {
 	return err
 }
 
+// Txn handles store transactions
+func (e *Etcd) Txn(ctx context.Context, handler kvstore.TxnHandler) error {
+	return handler.Handle(ctx, e)
+}
+
 // Subscribe to the changes made to the given key
 func (e *Etcd) Subscribe(ctx context.Context, key string, handler kvstore.Handler) error {
 	cWatch := e.Client.Watch(ctx, key)
@@ -166,7 +177,10 @@ func (e *Etcd) Subscribe(ctx context.Context, key string, handler kvstore.Handle
 			return nil
 		}
 
-		handler.Handle(key, watchResp)
+		err := handler.Handle(key, watchResp)
+		if err != nil {
+			return err
+		}
 	}
 }
 
