@@ -122,12 +122,6 @@ func (e *Etcd) Put(ctx context.Context, record kvstore.Record, opts ...kvstore.S
 	// Set the leaseID created/renewed
 	record.Metadata["lease_id"] = leaseID
 
-	e.Client.Txn(ctx).
-		If(clientv3.Compare(clientv3.Value(record.Key), "==", 1)).
-		Then(clientv3.OpPut(record.Key, string(record.Value))).
-		Else(clientv3.OpPut(record.Key, string(record.Value))).
-		Commit()
-
 	return &record, nil
 }
 
