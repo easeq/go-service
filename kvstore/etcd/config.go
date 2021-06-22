@@ -15,11 +15,11 @@ type Config struct {
 	// Endpoints is a comma separated list of etcd URLs
 	Endpoints string `env:"KVSTORE_ETCD_ENDPOINTS"`
 	// DialTimeout is the timeout for failing to establish a connection
-	DialTimeout time.Duration `env:"KVSTORE_ETCD_DIALTIMEOUT"`
+	DialTimeout time.Duration `env:"KVSTORE_ETCD_DIALTIMEOUT,omitempty"`
 	// Username is a username for authentication
-	Username string `env:"KVSTORE_ETCD_USERNAME"`
+	Username string `env:"KVSTORE_ETCD_USERNAME,omitempty"`
 	// Password is the password for authentication
-	Password string `env:"KVSTORE_ETCD_PASSWORD"`
+	Password string `env:"KVSTORE_ETCD_PASSWORD,omitempty"`
 }
 
 // NewConfig returns the env config for etcd client
