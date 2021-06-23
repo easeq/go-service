@@ -12,6 +12,10 @@ import (
 var (
 	// ErrInvalidLeaseID returned when the leaseID provided is invalid
 	ErrInvalidLeaseID = errors.New("invalid etcd leaseID passed")
+	// ErrNoResults returned when no results are found
+	ErrNoResults = errors.New("no results found")
+	// ErrCreatingEtcdClient returned when creating etcd clientv3 fails
+	ErrCreatingEtcdClient = errors.New("error creating kvstore etcd client")
 )
 
 // Etcd holds our etcd instance
@@ -28,7 +32,7 @@ func NewEtcd(config *Config) *Etcd {
 	})
 
 	if err != nil {
-		panic("Error creating an kvstore etcd client")
+		panic(ErrCreatingEtcdClient)
 	}
 
 	return &Etcd{client, config}
@@ -132,6 +136,10 @@ func (e *Etcd) Get(ctx context.Context, key string, opts ...kvstore.GetOpt) ([]*
 		return nil, err
 	}
 
+	if response.Count == 0 {
+		return nil, ErrNoResults
+	}
+
 	records := make([]*kvstore.Record, response.Count)
 	for i, r := range response.Kvs {
 		records[i] = &kvstore.Record{
@@ -142,6 +150,8 @@ func (e *Etcd) Get(ctx context.Context, key string, opts ...kvstore.GetOpt) ([]*
 				"count":    response.Count,
 				"header":   response.Header,
 				"more":     response.More,
+				"revision": r.ModRevision,
+				"version":  r.Version,
 			},
 		}
 	}

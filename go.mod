@@ -2,7 +2,7 @@ module github.com/easeq/go-service
 
 go 1.16
 
-replace github.com/easeq/go-service => ./go-service
+// replace github.com/easeq/go-service => ./go-service
 
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.0 // indirect
