@@ -194,7 +194,7 @@ func (e *Etcd) Txn(ctx context.Context, handler kvstore.TxnHandler) error {
 }
 
 // Subscribe to the changes made to the given key
-func (e *Etcd) Subscribe(ctx context.Context, key string, handler kvstore.Handler) error {
+func (e *Etcd) Subscribe(ctx context.Context, key string, handler kvstore.SubscribeHandler) error {
 	cWatch := e.Client.Watch(ctx, key)
 	log.Printf("set WATCH on %s", key)
 
