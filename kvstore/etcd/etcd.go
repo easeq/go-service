@@ -86,7 +86,7 @@ func (e *Etcd) LeaseID(ctx context.Context, record kvstore.Record) (clientv3.Lea
 
 	// Create a new lease and return
 	if leaseID == 0 && record.Expiry != 0 {
-		l, err := e.Client.Lease.Grant(ctx, int64(record.Expiry))
+		l, err := e.Client.Lease.Grant(ctx, int64(record.Expiry.Seconds()))
 		if err != nil {
 			return 0, err
 		}
@@ -118,6 +118,9 @@ func (e *Etcd) RenewLease(ctx context.Context, record kvstore.Record) error {
 }
 
 // Put adds the record into the store
+// Get the lease if lease_id is defined in the record metadata, or create new lease if expiry is defined
+// Renew lease using the lease_id in the record metadata, added/used by LeaseID(...)
+// Add the record to the store with the lease_id
 func (e *Etcd) Put(ctx context.Context, record kvstore.Record, opts ...kvstore.SetOpt) (*kvstore.Record, error) {
 	leaseID, err := e.LeaseID(ctx, record)
 	if err != nil {
@@ -136,6 +139,10 @@ func (e *Etcd) Put(ctx context.Context, record kvstore.Record, opts ...kvstore.S
 
 	if _, err := e.Client.Put(ctx, record.Key, string(record.Value), putOpts...); err != nil {
 		return nil, err
+	}
+
+	if record.Metadata == nil {
+		record.Metadata = make(map[string]interface{})
 	}
 
 	// Set the leaseID created/renewed
