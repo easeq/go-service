@@ -31,7 +31,7 @@ type KVStore interface {
 	// Init initializes the store with the given options
 	Init(opts ...Option) error
 	// Put the value for the key
-	Put(ctx context.Context, record Record, opts ...SetOpt) (*Record, error)
+	Put(ctx context.Context, record *Record, opts ...SetOpt) (*Record, error)
 	// Get the value for the key
 	Get(ctx context.Context, key string, opts ...GetOpt) ([]*Record, error)
 	// Delete the key from the store

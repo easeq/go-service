@@ -60,9 +60,10 @@ func (e *Etcd) Init(opts ...kvstore.Option) error {
 }
 
 // GetMetadataLeaseID returns the leaseID from the record metadata
-func (e *Etcd) GetMetadataLeaseID(record kvstore.Record) (clientv3.LeaseID, error) {
+func (e *Etcd) GetMetadataLeaseID(record *kvstore.Record) (clientv3.LeaseID, error) {
 	lID, ok := record.Metadata[KEY_LEASE_ID]
 	if !ok {
+		// LeaseID is not a required field, so no error
 		return 0, nil
 	}
 
@@ -75,17 +76,26 @@ func (e *Etcd) GetMetadataLeaseID(record kvstore.Record) (clientv3.LeaseID, erro
 }
 
 // LeaseID returns the leaseID (if any) to be used by the record
-// If exists, it returns the "lease_id" set in the record metadata
+// If exists, it renews and returns the "lease_id" set in the record metadata
 // If record expiry is set, then it creates a new leaseID and returns it.
-// If it's none of the above, then it returns nil
-func (e *Etcd) LeaseID(ctx context.Context, record kvstore.Record) (clientv3.LeaseID, error) {
+// If it's none of the above, then it returns 0
+func (e *Etcd) LeaseID(ctx context.Context, record *kvstore.Record) (clientv3.LeaseID, error) {
 	leaseID, err := e.GetMetadataLeaseID(record)
 	if err != nil {
 		return 0, err
 	}
 
+	// Renew and use existing lease
+	if leaseID != 0 {
+		if err := e.RenewLease(ctx, leaseID); err != nil {
+			return 0, err
+		}
+
+		return leaseID, nil
+	}
+
 	// Create a new lease and return
-	if leaseID == 0 && record.Expiry != 0 {
+	if record.Expiry != 0 {
 		l, err := e.Client.Lease.Grant(ctx, int64(record.Expiry.Seconds()))
 		if err != nil {
 			return 0, err
@@ -100,12 +110,7 @@ func (e *Etcd) LeaseID(ctx context.Context, record kvstore.Record) (clientv3.Lea
 
 // RenewLease renews the lease with the given leaseID
 // This renews lease if the lease is valid and not 0
-func (e *Etcd) RenewLease(ctx context.Context, record kvstore.Record) error {
-	leaseID, err := e.GetMetadataLeaseID(record)
-	if err != nil {
-		return err
-	}
-
+func (e *Etcd) RenewLease(ctx context.Context, leaseID clientv3.LeaseID) error {
 	if leaseID == 0 {
 		return nil
 	}
@@ -121,13 +126,9 @@ func (e *Etcd) RenewLease(ctx context.Context, record kvstore.Record) error {
 // Get the lease if lease_id is defined in the record metadata, or create new lease if expiry is defined
 // Renew lease using the lease_id in the record metadata, added/used by LeaseID(...)
 // Add the record to the store with the lease_id
-func (e *Etcd) Put(ctx context.Context, record kvstore.Record, opts ...kvstore.SetOpt) (*kvstore.Record, error) {
+func (e *Etcd) Put(ctx context.Context, record *kvstore.Record, opts ...kvstore.SetOpt) (*kvstore.Record, error) {
 	leaseID, err := e.LeaseID(ctx, record)
 	if err != nil {
-		return nil, err
-	}
-
-	if err := e.RenewLease(ctx, record); err != nil {
 		return nil, err
 	}
 
@@ -148,7 +149,7 @@ func (e *Etcd) Put(ctx context.Context, record kvstore.Record, opts ...kvstore.S
 	// Set the leaseID created/renewed
 	record.Metadata[KEY_LEASE_ID] = leaseID
 
-	return &record, nil
+	return record, nil
 }
 
 // Get a record by it's key
