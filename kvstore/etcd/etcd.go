@@ -18,6 +18,21 @@ var (
 	ErrCreatingEtcdClient = errors.New("error creating kvstore etcd client")
 )
 
+const (
+	// KEY_LEASE_ID points to the lease ID in the etcd record metadata
+	KEY_LEASE_ID = "lease_id"
+	// KEY_COUNT points to the count in the etcd record metadata
+	KEY_COUNT = "count"
+	// KEY_HEADER points to the header in the etcd record metadata
+	KEY_HEADER = "header"
+	// KEY_MORE points to the more boolean var in the etcd record metadata
+	KEY_MORE = "more"
+	// KEY_REVISION points to the revision in the etcd record metadata
+	KEY_REVISION = "revision"
+	// KEY_VERSION points to the version in the etcd record metadata
+	KEY_VERSION = "version"
+)
+
 // Etcd holds our etcd instance
 type Etcd struct {
 	*clientv3.Client
@@ -46,7 +61,7 @@ func (e *Etcd) Init(opts ...kvstore.Option) error {
 
 // GetMetadataLeaseID returns the leaseID from the record metadata
 func (e *Etcd) GetMetadataLeaseID(record kvstore.Record) (clientv3.LeaseID, error) {
-	lID, ok := record.Metadata["lease_id"]
+	lID, ok := record.Metadata[KEY_LEASE_ID]
 	if !ok {
 		return 0, nil
 	}
@@ -124,7 +139,7 @@ func (e *Etcd) Put(ctx context.Context, record kvstore.Record, opts ...kvstore.S
 	}
 
 	// Set the leaseID created/renewed
-	record.Metadata["lease_id"] = leaseID
+	record.Metadata[KEY_LEASE_ID] = leaseID
 
 	return &record, nil
 }
@@ -146,12 +161,12 @@ func (e *Etcd) Get(ctx context.Context, key string, opts ...kvstore.GetOpt) ([]*
 			Key:   string(r.Key),
 			Value: r.Value,
 			Metadata: map[string]interface{}{
-				"lease_id": clientv3.LeaseID(r.Lease),
-				"count":    response.Count,
-				"header":   response.Header,
-				"more":     response.More,
-				"revision": r.ModRevision,
-				"version":  r.Version,
+				KEY_LEASE_ID: clientv3.LeaseID(r.Lease),
+				KEY_COUNT:    response.Count,
+				KEY_HEADER:   response.Header,
+				KEY_MORE:     response.More,
+				KEY_REVISION: r.ModRevision,
+				KEY_VERSION:  r.Version,
 			},
 		}
 	}
