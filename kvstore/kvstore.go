@@ -17,7 +17,7 @@ type GetOpt interface{}
 // SubscribeHandler for the subscribe action
 type SubscribeHandler interface {
 	// Handle the subscription for the given key
-	Handle(key string, args ...interface{}) error
+	Handle(key string, args ...interface{}) (bool, error)
 }
 
 // TxnHandler is the interface for handling transactions

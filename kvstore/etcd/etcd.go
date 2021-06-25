@@ -204,9 +204,13 @@ func (e *Etcd) Subscribe(ctx context.Context, key string, handler kvstore.Subscr
 			return nil
 		}
 
-		err := handler.Handle(key, watchResp)
+		done, err := handler.Handle(key, watchResp)
 		if err != nil {
 			return err
+		}
+
+		if done {
+			return nil
 		}
 	}
 }
