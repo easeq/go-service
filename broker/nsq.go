@@ -30,7 +30,7 @@ func NewNsq() *Nsq {
 }
 
 // Run the broker until it's stopped
-func (n *Nsq) Run(ctx context.Context, opts ...interface{}) error {
+func (n *Nsq) Run(ctx context.Context, opts ...RunOption) error {
 	producer, err := nsq.NewProducer(n.Config.Producer.Address(), n.NSQConfig())
 	if err != nil {
 		return err
@@ -54,8 +54,9 @@ func (n *Nsq) Publish(ctx context.Context, topic string, message Message) error 
 }
 
 // Subscribe subcribes for the given topic
-func (n *Nsq) Subscribe(ctx context.Context, topic string, handler Handler, opts ...interface{}) error {
-	consumer, err := nsq.NewConsumer(topic, n.Channel(topic), n.NSQConfig())
+func (n *Nsq) Subscribe(ctx context.Context, topic string, handler Handler, opts ...SubscribeOption) error {
+	subscriber := NewNsqSubscriber(n, topic, opts...)
+	consumer, err := nsq.NewConsumer(topic, subscriber.channel, n.NSQConfig())
 	if err != nil {
 		return err
 	}
@@ -94,4 +95,29 @@ func (n *Nsq) Close() error {
 	}
 
 	return nil
+}
+
+// NsqSubscriber holds additional options for nsq subscription
+type NsqSubscriber struct {
+	channel string
+}
+
+// NewNsqSubscriber returns a new subscriber instance for NSQ subscription
+func NewNsqSubscriber(n *Nsq, topic string, opts ...SubscribeOption) *NsqSubscriber {
+	subscriber := &NsqSubscriber{
+		channel: n.Channel(topic),
+	}
+
+	for _, opt := range opts {
+		opt(subscriber)
+	}
+
+	return subscriber
+}
+
+// WithChannelName defines a channel name for the subscriber
+func WithChannelName(name string) SubscribeOption {
+	return func(s Subscriber) {
+		s.(*NsqSubscriber).channel = name
+	}
 }
