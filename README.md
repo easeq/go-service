@@ -14,6 +14,10 @@
 
 * [db](./db)
 
+* [kvstore](./kvstore)
+
+* [kvstore/etcd](./kvstore/etcd)
+
 * [pool](./pool)
 
 * [protoc-gen-go-service](./protoc-gen-go-service)
