@@ -25,7 +25,7 @@ type Nsq struct {
 func NewNsq() *Nsq {
 	producer, err := nsq.NewProducer(n.Config.Producer.Address(), n.NSQConfig())
 	if err != nil {
-		return err
+		panic("Could not initialize NSQ producer")
 	}
 	
 	return &Nsq{
