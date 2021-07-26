@@ -23,7 +23,13 @@ type Nsq struct {
 
 // NewNsq returns a new instance of NSQ
 func NewNsq() *Nsq {
+	producer, err := nsq.NewProducer(n.Config.Producer.Address(), n.NSQConfig())
+	if err != nil {
+		return err
+	}
+	
 	return &Nsq{
+		Producer:  producer,
 		Consumers: make(map[string]*nsq.Consumer),
 		Config:    goconfig.NewEnvConfig(new(Config)).(*Config),
 	}
@@ -31,15 +37,8 @@ func NewNsq() *Nsq {
 
 // Run the broker until it's stopped
 func (n *Nsq) Run(ctx context.Context, opts ...RunOption) error {
-	producer, err := nsq.NewProducer(n.Config.Producer.Address(), n.NSQConfig())
-	if err != nil {
-		return err
-	}
-
-	n.Producer = producer
-
 	<-ctx.Done()
-
+	
 	return nil
 }
 
