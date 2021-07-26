@@ -23,7 +23,9 @@ type Nsq struct {
 
 // NewNsq returns a new instance of NSQ
 func NewNsq() *Nsq {
-	producer, err := nsq.NewProducer(n.Config.Producer.Address(), n.NSQConfig())
+	config := goconfig.NewEnvConfig(new(Config)).(*Config)
+	
+	producer, err := nsq.NewProducer(config.Producer.Address(), nsq.NSQConfig())
 	if err != nil {
 		panic("Could not initialize NSQ producer")
 	}
@@ -31,7 +33,7 @@ func NewNsq() *Nsq {
 	return &Nsq{
 		Producer:  producer,
 		Consumers: make(map[string]*nsq.Consumer),
-		Config:    goconfig.NewEnvConfig(new(Config)).(*Config),
+		Config:    config,
 	}
 }
 
