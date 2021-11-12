@@ -12,6 +12,8 @@ require (
 	github.com/go-test/deep v1.0.7
 	github.com/golang-migrate/migrate/v4 v4.14.1
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
+	github.com/nats-io/nats-server/v2 v2.6.4 // indirect
+	github.com/nats-io/nats.go v1.13.1-0.20211018182449-f2416a8b1483
 	github.com/nsqio/go-nsq v1.0.8
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/stretchr/testify v1.7.0

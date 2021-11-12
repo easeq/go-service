@@ -155,18 +155,13 @@ func (s *Service) RunResource(ctx context.Context, r interface{}) <-chan error {
 
 		switch v := r.(type) {
 		case db.ServiceDatabase:
-			log.Println("Initilaize database...")
+			log.Println("Initialize database...")
 			if err := v.Init(); err != nil {
 				cErr <- err
 			}
 		case registry.ServiceRegistry:
 			log.Println("Register services...")
 			if err := v.Register(ctx, s.Name, s.Server); err != nil {
-				cErr <- err
-			}
-		case broker.Broker:
-			log.Println("Initialize broker...")
-			if err := v.Run(ctx); err != nil {
 				cErr <- err
 			}
 		case server.Server:
@@ -185,7 +180,6 @@ func (s *Service) Run(ctx context.Context) error {
 	return utils.WaitForError(
 		s.RunResource(ctx, s.Database),
 		s.RunResource(ctx, s.Registry),
-		s.RunResource(ctx, s.Broker),
 		s.RunResource(ctx, s.Server),
 	)
 }

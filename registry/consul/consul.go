@@ -42,7 +42,7 @@ func NewConsul() *Consul {
 	}
 }
 
-// Register registers service with the registry
+// Register registers service with the registry.
 func (c *Consul) Register(
 	ctx context.Context,
 	name string,
