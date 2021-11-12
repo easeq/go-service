@@ -1,4 +1,4 @@
-package broker
+package nsq
 
 import (
 	"fmt"

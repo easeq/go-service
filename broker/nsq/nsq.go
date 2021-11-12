@@ -1,4 +1,4 @@
-package broker
+package nsq
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	goconfig "github.com/easeq/go-config"
+	"github.com/easeq/go-service/broker"
 	"github.com/nsqio/go-nsq"
 )
 
@@ -37,15 +38,8 @@ func NewNsq() *Nsq {
 	}
 }
 
-// Run the broker until it's stopped
-func (n *Nsq) Run(ctx context.Context, opts ...RunOption) error {
-	<-ctx.Done()
-	
-	return nil
-}
-
 // Publish publishes the topic message
-func (n *Nsq) Publish(ctx context.Context, topic string, message Message) error {
+func (n *Nsq) Publish(ctx context.Context, topic string, message broker.Message, opts ...broker.PublishOption) error {
 	payload, err := json.Marshal(message)
 	if err != nil {
 		return err
@@ -55,20 +49,15 @@ func (n *Nsq) Publish(ctx context.Context, topic string, message Message) error 
 }
 
 // Subscribe subcribes for the given topic
-func (n *Nsq) Subscribe(ctx context.Context, topic string, handler Handler, opts ...SubscribeOption) error {
+func (n *Nsq) Subscribe(ctx context.Context, topic string, handler broker.Handler, opts ...broker.SubscribeOption) error {
 	subscriber := NewNsqSubscriber(n, topic, opts...)
 	consumer, err := nsq.NewConsumer(topic, subscriber.channel, n.NSQConfig())
 	if err != nil {
 		return err
 	}
 
-	nsqHandler, ok := handler.(nsq.Handler)
-	if !ok {
-		return ErrInvalidMessageHandler
-	}
-
+	nsqHandler := NewNsqHandler(handler)
 	consumer.AddHandler(nsqHandler)
-
 	if err := consumer.ConnectToNSQD(n.Config.Producer.Address()); err != nil {
 		return err
 	}
@@ -104,7 +93,7 @@ type NsqSubscriber struct {
 }
 
 // NewNsqSubscriber returns a new subscriber instance for NSQ subscription
-func NewNsqSubscriber(n *Nsq, topic string, opts ...SubscribeOption) *NsqSubscriber {
+func NewNsqSubscriber(n *Nsq, topic string, opts ...broker.SubscribeOption) *NsqSubscriber {
 	subscriber := &NsqSubscriber{
 		channel: n.Channel(topic),
 	}
@@ -117,8 +106,8 @@ func NewNsqSubscriber(n *Nsq, topic string, opts ...SubscribeOption) *NsqSubscri
 }
 
 // WithChannelName defines a channel name for the subscriber
-func WithChannelName(name string) SubscribeOption {
-	return func(s Subscriber) {
+func WithChannelName(name string) broker.SubscribeOption {
+	return func(s broker.Subscriber) {
 		s.(*NsqSubscriber).channel = name
 	}
 }
