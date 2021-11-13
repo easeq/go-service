@@ -13,6 +13,7 @@ import (
 	"github.com/easeq/go-service/kvstore"
 	"github.com/easeq/go-service/registry"
 	"github.com/easeq/go-service/server"
+	"github.com/easeq/go-service/tracer"
 	"github.com/easeq/go-service/utils"
 )
 
@@ -24,6 +25,7 @@ type Service struct {
 	Registry registry.ServiceRegistry
 	Client   client.Client
 	KVStore  kvstore.KVStore
+	Tracer   tracer.Tracer
 	exit     chan os.Signal
 	*Config
 }
@@ -92,6 +94,13 @@ func WithKVStore(kvStore kvstore.KVStore) ServiceOption {
 	}
 }
 
+// WithTracer assigns the tracer to be used by the service
+func WithTracer(tracer tracer.Tracer) ServiceOption {
+	return func(s *Service) {
+		s.Tracer = tracer
+	}
+}
+
 // // WithLogger sets the logger used by the service
 // func WithLogger(logger logger.Logger) ServiceOption {
 // 	return func(s *Service) {
@@ -140,6 +149,11 @@ func (s *Service) ShutDown(ctx context.Context) {
 				log.Println("Error shutting down server", err)
 			}
 		}
+
+		if s.Tracer != nil {
+			log.Println("Closing tracer connection")
+			s.Tracer.Stop()
+		}
 	}()
 }
 
@@ -169,6 +183,11 @@ func (s *Service) RunResource(ctx context.Context, r interface{}) <-chan error {
 			if err := v.Run(ctx); err != nil {
 				cErr <- err
 			}
+		case tracer.Tracer:
+			log.Println("Start tracer...")
+			if err := v.Start(ctx); err != nil {
+				cErr <- err
+			}
 		}
 	}()
 
@@ -178,6 +197,7 @@ func (s *Service) RunResource(ctx context.Context, r interface{}) <-chan error {
 // Run runs both the HTTP and gRPC server
 func (s *Service) Run(ctx context.Context) error {
 	return utils.WaitForError(
+		s.RunResource(ctx, s.Tracer),
 		s.RunResource(ctx, s.Database),
 		s.RunResource(ctx, s.Registry),
 		s.RunResource(ctx, s.Server),

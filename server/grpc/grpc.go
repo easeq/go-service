@@ -11,10 +11,6 @@ import (
 	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/registry"
 
-	"github.com/opentracing/opentracing-go"
-	jaegercfg "github.com/uber/jaeger-client-go/config"
-	jaegerlog "github.com/uber/jaeger-client-go/log"
-	"github.com/uber/jaeger-lib/metrics"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -163,22 +159,4 @@ func (g *Grpc) AddRegistryTags(tags ...string) {
 // String - Returns the type of the server
 func (g *Grpc) String() string {
 	return SERVER_TYPE
-}
-
-func init() {
-	otCfg, err := jaegercfg.FromEnv()
-	if err != nil {
-		log.Println("Error setting up opentracing: ", err)
-	}
-
-	jLogger := jaegerlog.StdLogger
-	jMetricsFactory := metrics.NullFactory
-
-	tracer, _, _ := otCfg.NewTracer(
-		jaegercfg.Logger(jLogger),
-		jaegercfg.Metrics(jMetricsFactory),
-	)
-
-	// TODO: find a place to add closer.Close() to avoid premature closing
-	opentracing.SetGlobalTracer(tracer)
 }
