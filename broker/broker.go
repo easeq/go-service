@@ -26,6 +26,9 @@ type Broker interface {
 	Close() error
 }
 
+// Option to pass as arg while creating new broker instance
+type Option func(Broker)
+
 // Interface for a message publisher
 type Publisher interface{}
 

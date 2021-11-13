@@ -86,28 +86,3 @@ func (n *Nsq) Close() error {
 
 	return nil
 }
-
-// NsqSubscriber holds additional options for nsq subscription
-type NsqSubscriber struct {
-	channel string
-}
-
-// NewNsqSubscriber returns a new subscriber instance for NSQ subscription
-func NewNsqSubscriber(n *Nsq, topic string, opts ...broker.SubscribeOption) *NsqSubscriber {
-	subscriber := &NsqSubscriber{
-		channel: n.Channel(topic),
-	}
-
-	for _, opt := range opts {
-		opt(subscriber)
-	}
-
-	return subscriber
-}
-
-// WithChannelName defines a channel name for the subscriber
-func WithChannelName(name string) broker.SubscribeOption {
-	return func(s broker.Subscriber) {
-		s.(*NsqSubscriber).channel = name
-	}
-}
