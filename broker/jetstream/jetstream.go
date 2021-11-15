@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 
 	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/broker"
 	nats "github.com/nats-io/nats.go"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 )
 
 var (
@@ -98,7 +101,27 @@ func (j *JetStream) Publish(ctx context.Context, topic string, message interface
 		return err
 	}
 
-	_, err = j.jsCtx.Publish(topic, payload)
+	var t broker.TraceMsg
+
+	operationName := fmt.Sprintf("Publish message (%s)", topic)
+	span := opentracing.StartSpan(operationName, ext.SpanKindProducer)
+	if span != nil {
+		defer span.Finish()
+
+		ext.MessageBusDestination.Set(span, topic)
+		if err := opentracing.GlobalTracer().Inject(
+			span.Context(),
+			opentracing.Binary,
+			&t,
+		); err != nil {
+			return err
+		}
+	}
+
+	// Add the payload/original message
+	t.Write(payload)
+	// Send the message with span over NATS
+	_, err = j.jsCtx.Publish(topic, t.Bytes())
 	return err
 }
 
@@ -106,11 +129,30 @@ func (j *JetStream) Publish(ctx context.Context, topic string, message interface
 func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.Handler, opts ...broker.SubscribeOption) error {
 	subscriber := NewSubscriber(j, topic, opts...)
 	natsHandler := func(m *nats.Msg) {
-		err := handler.Handle(&broker.Message{
-			Body:   m.Data,
-			Extras: m,
-		})
+		// Create new TraceMsg from normal NATS message.
+		t := broker.NewTraceMsg(m.Data)
+
+		// Extract the span context.
+		sc, err := opentracing.GlobalTracer().Extract(opentracing.Binary, t)
 		if err != nil {
+			log.Printf("Extract span error: %v", err)
+		}
+
+		operationName := fmt.Sprintf("Receive message (%s)", m.Subject)
+		span := opentracing.StartSpan(
+			operationName,
+			ext.SpanKindConsumer,
+			opentracing.FollowsFrom(sc),
+		)
+		if span != nil {
+			defer span.Finish()
+			ext.MessageBusDestination.Set(span, m.Subject)
+		}
+
+		if err := handler.Handle(&broker.Message{
+			Body:   t.Bytes(),
+			Extras: m,
+		}); err != nil {
 			m.Nak()
 		}
 		m.Ack()

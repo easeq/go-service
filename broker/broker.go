@@ -1,6 +1,9 @@
 package broker
 
-import "context"
+import (
+	"bytes"
+	"context"
+)
 
 // Message structure
 type Message struct {
@@ -46,3 +49,14 @@ type Runner interface{}
 
 // RunOption to pass as arg while calling the run method for the broker
 type RunOption func(Runner)
+
+// TraceMsg is used to trace the message using an opentracing
+type TraceMsg struct {
+	bytes.Buffer
+}
+
+// Prepare a trace message with the broker sent bytes
+func NewTraceMsg(data []byte) *TraceMsg {
+	b := bytes.NewBuffer(data)
+	return &TraceMsg{*b}
+}
