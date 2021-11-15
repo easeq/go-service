@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"os"
-	"runtime"
 	"strings"
 
 	goconfig "github.com/easeq/go-config"
@@ -76,7 +75,7 @@ func (s *Simple) GetMetadata(key string) interface{} {
 
 // Run runs gRPC service
 func (s *Simple) Run(ctx context.Context) error {
-	runtime.Goexit()
+	<-ctx.Done()
 	return nil
 }
 
