@@ -108,7 +108,7 @@ func WithTracer(tracer tracer.Tracer) ServiceOption {
 // 	}
 // }
 
-// ShutDown shuts down the service and all its associated connections
+// ShutDown shuts down the service and all its associated connections.
 func (s *Service) ShutDown(ctx context.Context) {
 	// graceful shutdown
 	signal.Notify(s.exit, os.Interrupt)
@@ -183,11 +183,6 @@ func (s *Service) RunResource(ctx context.Context, r interface{}) <-chan error {
 			if err := v.Run(ctx); err != nil {
 				cErr <- err
 			}
-		case tracer.Tracer:
-			log.Println("Start tracer...")
-			if err := v.Start(ctx); err != nil {
-				cErr <- err
-			}
 		}
 	}()
 
@@ -197,7 +192,6 @@ func (s *Service) RunResource(ctx context.Context, r interface{}) <-chan error {
 // Run runs both the HTTP and gRPC server
 func (s *Service) Run(ctx context.Context) error {
 	return utils.WaitForError(
-		s.RunResource(ctx, s.Tracer),
 		s.RunResource(ctx, s.Database),
 		s.RunResource(ctx, s.Registry),
 		s.RunResource(ctx, s.Server),

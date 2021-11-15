@@ -1,19 +1,13 @@
 package jaeger
 
 import (
-	"context"
-	"errors"
+	"fmt"
 	"io"
 
 	"github.com/opentracing/opentracing-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
-)
-
-var (
-	// ErrJaegerConnection returned when connecting to jaeger fails
-	ErrJaegerConnection = errors.New("error connecting to jaeger")
-	// ErrJaegerClose returned when closing connection with jaeger fails
-	ErrJaegerClose = errors.New("error closing jaeger connection")
+	jaegerlog "github.com/uber/jaeger-client-go/log"
+	"github.com/uber/jaeger-lib/metrics"
 )
 
 type jaeger struct {
@@ -28,18 +22,17 @@ func NewJaeger() *jaeger {
 		panic("error fetching jaeger config")
 	}
 
-	tracer, closer, err := config.NewTracer()
+	tracer, closer, err := config.NewTracer(
+		jaegercfg.Logger(jaegerlog.StdLogger),
+		jaegercfg.Metrics(metrics.NullFactory),
+	)
 	if err != nil {
-		panic(ErrJaegerConnection)
+		panic(fmt.Errorf("jeaeger-err: %s", err))
 	}
 
-	return &jaeger{tracer, closer, config}
-}
+	opentracing.SetGlobalTracer(tracer)
 
-// Start a connection with jaeger
-func (j *jaeger) Start(ctx context.Context) error {
-	opentracing.SetGlobalTracer(j.tracer)
-	return nil
+	return &jaeger{tracer, closer, config}
 }
 
 // Stop jaeger connection
