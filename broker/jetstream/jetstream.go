@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/broker"
@@ -120,7 +121,7 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 				Body:   body,
 				Extras: m,
 			}); err != nil {
-				m.Nak()
+				m.Nak(nats.AckWait(10 * time.Second))
 				return err
 			}
 
@@ -129,9 +130,9 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 		})
 	}
 
-	subscription, err := j.jsCtx.Subscribe(topic, natsHandler, subscriber.subOpts...)
+	subscription, err := j.jsCtx.Subscribe(topic, natsHandler, subscriber.opts...)
 	if err != nil {
-		return ErrSubscriptionFailed
+		return fmt.Errorf("JetStream subscription failed: %v", err)
 	}
 
 	j.Subscriptions[topic] = subscription
