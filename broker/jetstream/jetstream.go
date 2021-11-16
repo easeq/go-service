@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/broker"
@@ -121,7 +120,7 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 				Body:   body,
 				Extras: m,
 			}); err != nil {
-				m.Nak(nats.AckWait(10 * time.Second))
+				m.Nak()
 				return err
 			}
 
