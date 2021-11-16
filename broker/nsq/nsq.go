@@ -17,6 +17,7 @@ var (
 
 // Nsq holds our broker instance
 type Nsq struct {
+	t         *broker.Trace
 	Producer  *nsq.Producer
 	Consumers map[string]*nsq.Consumer
 	*Config
@@ -32,6 +33,7 @@ func NewNsq() *Nsq {
 	}
 
 	return &Nsq{
+		t:         new(broker.Trace),
 		Producer:  producer,
 		Consumers: make(map[string]*nsq.Consumer),
 		Config:    config,
@@ -45,7 +47,13 @@ func (n *Nsq) Publish(ctx context.Context, topic string, message broker.Message,
 		return err
 	}
 
-	return n.Producer.Publish(topic, payload)
+	return n.t.Publish(topic, func(t *broker.TraceMsg) error {
+		// Add the payload/original message
+		t.Write(payload)
+
+		// Send the message with span over NSQ
+		return n.Producer.Publish(topic, payload)
+	})
 }
 
 // Subscribe subcribes for the given topic
@@ -56,7 +64,7 @@ func (n *Nsq) Subscribe(ctx context.Context, topic string, handler broker.Handle
 		return err
 	}
 
-	nsqHandler := NewNsqHandler(handler)
+	nsqHandler := NewNsqHandler(n, topic, handler)
 	consumer.AddHandler(nsqHandler)
 	if err := consumer.ConnectToNSQD(n.Config.Producer.Address()); err != nil {
 		return err
