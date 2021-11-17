@@ -59,22 +59,6 @@ func NewGrpc(opts ...Option) *Grpc {
 	return g
 }
 
-// GetLogger returns a new zap.Logger
-func GetLogger() *zap.Logger {
-	zapLogger, err := zap.NewProduction()
-	if err != nil {
-		log.Println("ZapLogger failed!")
-	}
-
-	defer func() {
-		if err := zapLogger.Sync(); err != nil {
-			log.Println("ZapLogger Sync failed")
-		}
-	}()
-
-	return zapLogger
-}
-
 // WithGrpcServerOptions adds gRPC options
 func WithGrpcServerOptions(opts ...grpc.ServerOption) Option {
 	return func(g *Grpc) {

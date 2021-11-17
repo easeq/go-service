@@ -8,6 +8,8 @@ import (
 
 	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/broker"
+	"github.com/easeq/go-service/logger"
+	"github.com/easeq/go-service/tracer"
 	nats "github.com/nats-io/nats.go"
 )
 
@@ -20,6 +22,8 @@ var (
 
 // Nsq holds our broker instance
 type JetStream struct {
+	logger        logger.Logger
+	tracer        tracer.Tracer
 	t             *broker.Trace
 	nc            *nats.Conn
 	jsCtx         nats.JetStreamContext
@@ -97,6 +101,7 @@ func (j *JetStream) createStream(name string, subjects ...string) error {
 func (j *JetStream) Publish(ctx context.Context, topic string, message interface{}, opts ...broker.PublishOption) error {
 	payload, err := json.Marshal(message)
 	if err != nil {
+		j.logger.Errorf("JetStream publish payload error: %s", err)
 		return err
 	}
 
@@ -106,12 +111,15 @@ func (j *JetStream) Publish(ctx context.Context, topic string, message interface
 
 		// Send the message with span over NATS
 		_, err = j.jsCtx.Publish(topic, t.Bytes())
+
+		j.logger.Errorf("JetStream publish error: %s", err)
 		return err
 	})
 }
 
 // Subscribe subcribes for the given topic.
 func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.Handler, opts ...broker.SubscribeOption) error {
+	j.logger.Info("Subscribe message", topic)
 	subscriber := NewSubscriber(j, topic, opts...)
 	natsHandler := func(m *nats.Msg) {
 		// Create new TraceMsg from normal NATS message.
@@ -120,6 +128,7 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 				Body:   body,
 				Extras: m,
 			}); err != nil {
+				j.logger.Errorf("JetStream subcribe handle error: %s", err)
 				m.Nak()
 				return err
 			}
@@ -131,6 +140,7 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 
 	subscription, err := j.jsCtx.Subscribe(topic, natsHandler, subscriber.opts...)
 	if err != nil {
+		j.logger.Errorf("JetStream subcription error: %s", err)
 		return fmt.Errorf("JetStream subscription failed: %v", err)
 	}
 
@@ -148,10 +158,40 @@ func (j *JetStream) Unsubscribe(topic string) error {
 func (j *JetStream) Close() error {
 	for _, sub := range j.Subscriptions {
 		if err := sub.Unsubscribe(); err != nil {
+			j.logger.Errorf("JetStream close connection error: %s", err)
 			return err
 		}
 	}
 
 	j.nc.Close()
+	return nil
+}
+
+// AddDependency adds necessary service components as dependencies
+func (j *JetStream) AddDependency(dep interface{}) error {
+	switch v := dep.(type) {
+	case logger.Logger:
+		j.logger = v
+	case tracer.Tracer:
+		j.tracer = v
+	}
+
+	return nil
+}
+
+// Dependencies returns the string names of service components
+// that are required as dependencies for this component
+func (j *JetStream) Dependencies() []string {
+	return []string{"logger", "tracer"}
+}
+
+// CanRun returns true if the component has anything to Run
+func (j *JetStream) CanRun() bool {
+	return false
+}
+
+// Run start the service component
+func (j *JetStream) Run(ctx context.Context) error {
+	j.logger.Info("JetStream 'Run()': Unimplemented method")
 	return nil
 }
