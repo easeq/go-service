@@ -70,7 +70,7 @@ func GetConfig() *Config {
 func (db *Postgres) Migrate() error {
 	instance, err := db.instance()
 	if err != nil {
-		db.logger.Errorw(
+		db.logger.Fatalw(
 			ErrCreateDBInstance.Error(),
 			"error", err,
 		)
@@ -84,7 +84,7 @@ func (db *Postgres) Migrate() error {
 	)
 
 	if err != nil {
-		db.logger.Errorw(
+		db.logger.Fatalw(
 			ErrMigrationLoad.Error(),
 			"error", err,
 		)
@@ -92,7 +92,7 @@ func (db *Postgres) Migrate() error {
 	}
 
 	if err := m.Up(); err != nil {
-		db.logger.Errorw(
+		db.logger.Debugw(
 			"Migration UP failed",
 			"error", err,
 		)

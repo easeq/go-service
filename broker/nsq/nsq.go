@@ -39,18 +39,23 @@ func NewNsq() *Nsq {
 	}
 
 	n := &Nsq{
-		t:         new(broker.Trace),
 		Producer:  producer,
 		Consumers: make(map[string]*nsq.Consumer),
 		Config:    config,
 	}
 
+	n.t = broker.NewTrace(n)
 	n.i = NewInitializer(n)
 	return n
 }
 
+// Logger returns the initialized logger instance
+func (n *Nsq) Logger() logger.Logger {
+	return n.logger
+}
+
 // Publish publishes the topic message
-func (n *Nsq) Publish(ctx context.Context, topic string, message broker.Message, opts ...broker.PublishOption) error {
+func (n *Nsq) Publish(ctx context.Context, topic string, message interface{}, opts ...broker.PublishOption) error {
 	payload, err := json.Marshal(message)
 	if err != nil {
 		return err

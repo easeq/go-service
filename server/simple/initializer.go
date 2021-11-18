@@ -28,7 +28,7 @@ func (i *Initializer) AddDependency(dep interface{}) error {
 // Dependencies returns the string names of service components
 // that are required as dependencies for this component
 func (i *Initializer) Dependencies() []string {
-	return []string{"logger"}
+	return []string{logger.LOGGER}
 }
 
 // CanRun returns true if the component has anything to Run

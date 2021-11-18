@@ -33,7 +33,7 @@ func (i *Initializer) AddDependency(dep interface{}) error {
 // Dependencies returns the string names of service components
 // that are required as dependencies for this component
 func (i *Initializer) Dependencies() []string {
-	return []string{"logger", "tracer"}
+	return []string{logger.LOGGER, tracer.TRACER}
 }
 
 // CanRun returns true if the component has anything to Run
@@ -43,7 +43,7 @@ func (i *Initializer) CanRun() bool {
 
 // Run start the service component
 func (i *Initializer) Run(ctx context.Context) error {
-	i.j.logger.Infow("Unimplemented", "method", "Run", "package", "goservice.broker.jetstream")
+	i.j.logger.Infow("Unimplemented", "method", "Run", "package", "goservice.Broker().jetstream")
 	return nil
 }
 

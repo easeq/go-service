@@ -6,12 +6,12 @@ import (
 	uber_zap "go.uber.org/zap"
 )
 
-type zap struct {
-	config        *Config
-	sugaredLogger *uber_zap.SugaredLogger
+type Zap struct {
+	Config *Config
+	Logger *uber_zap.SugaredLogger
 }
 
-func NewZap() *zap {
+func NewZap() *Zap {
 	config := goconfig.NewEnvConfig(new(Config)).(*Config)
 	// log.Println("config", config, config.ZapConfig())
 	// logger, err := config.ZapConfig().Build()
@@ -39,97 +39,97 @@ func NewZap() *zap {
 	// 	panic(err)
 	// }
 
-	return &zap{config, sugaredLogger}
+	return &Zap{Config: config, Logger: sugaredLogger}
 }
 
-func (l *zap) Debug(args ...interface{}) {
-	l.sugaredLogger.Debug(args...)
+func (l *Zap) Debug(args ...interface{}) {
+	l.Logger.Debug(args...)
 }
 
-func (l *zap) Debugf(template string, args ...interface{}) {
-	l.sugaredLogger.Debugf(template, args...)
+func (l *Zap) Debugf(template string, args ...interface{}) {
+	l.Logger.Debugf(template, args...)
 }
 
-func (l *zap) Debugw(message string, args ...interface{}) {
-	l.sugaredLogger.Debugw(message, args...)
+func (l *Zap) Debugw(message string, args ...interface{}) {
+	l.Logger.Debugw(message, args...)
 }
 
-func (l *zap) Info(args ...interface{}) {
-	l.sugaredLogger.Info(args...)
+func (l *Zap) Info(args ...interface{}) {
+	l.Logger.Info(args...)
 }
 
-func (l *zap) Infof(template string, args ...interface{}) {
-	l.sugaredLogger.Infof(template, args...)
+func (l *Zap) Infof(template string, args ...interface{}) {
+	l.Logger.Infof(template, args...)
 }
 
-func (l *zap) Infow(message string, args ...interface{}) {
-	l.sugaredLogger.Infow(message, args...)
+func (l *Zap) Infow(message string, args ...interface{}) {
+	l.Logger.Infow(message, args...)
 }
 
-func (l *zap) Warn(args ...interface{}) {
-	l.sugaredLogger.Warn(args...)
+func (l *Zap) Warn(args ...interface{}) {
+	l.Logger.Warn(args...)
 }
 
-func (l *zap) Warnf(template string, args ...interface{}) {
-	l.sugaredLogger.Warnf(template, args...)
+func (l *Zap) Warnf(template string, args ...interface{}) {
+	l.Logger.Warnf(template, args...)
 }
 
-func (l *zap) Warnw(message string, args ...interface{}) {
-	l.sugaredLogger.Warnw(message, args...)
+func (l *Zap) Warnw(message string, args ...interface{}) {
+	l.Logger.Warnw(message, args...)
 }
 
-func (l *zap) Error(args ...interface{}) {
-	l.sugaredLogger.Error(args...)
+func (l *Zap) Error(args ...interface{}) {
+	l.Logger.Error(args...)
 }
 
-func (l *zap) Errorf(template string, args ...interface{}) {
-	l.sugaredLogger.Errorf(template, args...)
+func (l *Zap) Errorf(template string, args ...interface{}) {
+	l.Logger.Errorf(template, args...)
 }
 
-func (l *zap) Errorw(message string, args ...interface{}) {
-	l.sugaredLogger.Errorw(message, args...)
+func (l *Zap) Errorw(message string, args ...interface{}) {
+	l.Logger.Errorw(message, args...)
 }
 
-func (l *zap) DPanic(args ...interface{}) {
-	l.sugaredLogger.DPanic(args...)
+func (l *Zap) DPanic(args ...interface{}) {
+	l.Logger.DPanic(args...)
 }
 
-func (l *zap) DPanicf(template string, args ...interface{}) {
-	l.sugaredLogger.DPanicf(template, args...)
+func (l *Zap) DPanicf(template string, args ...interface{}) {
+	l.Logger.DPanicf(template, args...)
 }
 
-func (l *zap) DPanicw(message string, args ...interface{}) {
-	l.sugaredLogger.DPanicw(message, args...)
+func (l *Zap) DPanicw(message string, args ...interface{}) {
+	l.Logger.DPanicw(message, args...)
 }
 
-func (l *zap) Panic(args ...interface{}) {
-	l.sugaredLogger.Panic(args...)
+func (l *Zap) Panic(args ...interface{}) {
+	l.Logger.Panic(args...)
 }
 
-func (l *zap) Panicf(template string, args ...interface{}) {
-	l.sugaredLogger.Panicf(template, args...)
+func (l *Zap) Panicf(template string, args ...interface{}) {
+	l.Logger.Panicf(template, args...)
 }
 
-func (l *zap) Panicw(message string, args ...interface{}) {
-	l.sugaredLogger.Panicw(message, args...)
+func (l *Zap) Panicw(message string, args ...interface{}) {
+	l.Logger.Panicw(message, args...)
 }
 
-func (l *zap) Fatal(args ...interface{}) {
-	l.sugaredLogger.Fatal(args...)
+func (l *Zap) Fatal(args ...interface{}) {
+	l.Logger.Fatal(args...)
 }
 
-func (l *zap) Fatalf(template string, args ...interface{}) {
-	l.sugaredLogger.Fatalf(template, args...)
+func (l *Zap) Fatalf(template string, args ...interface{}) {
+	l.Logger.Fatalf(template, args...)
 }
 
-func (l *zap) Fatalw(message string, args ...interface{}) {
-	l.sugaredLogger.Fatalw(message, args...)
+func (l *Zap) Fatalw(message string, args ...interface{}) {
+	l.Logger.Fatalw(message, args...)
 }
 
-func (l *zap) HasInitializer() bool {
+func (l *Zap) HasInitializer() bool {
 	return false
 }
 
-func (l *zap) Initializer() component.Initializer {
+func (l *Zap) Initializer() component.Initializer {
 	return nil
 }

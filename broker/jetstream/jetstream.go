@@ -49,7 +49,6 @@ func NewJetStream(opts ...broker.Option) *JetStream {
 
 	j := &JetStream{
 		i:             nil,
-		t:             new(broker.Trace),
 		nc:            nc,
 		jsCtx:         js,
 		Js:            js,
@@ -61,7 +60,9 @@ func NewJetStream(opts ...broker.Option) *JetStream {
 		opt(j)
 	}
 
+	j.t = broker.NewTrace(j)
 	j.i = NewInitializer(j)
+
 	return j
 }
 
@@ -75,6 +76,11 @@ func AddStream(name string, subjects ...string) broker.Option {
 
 		b.(*JetStream).createStream(name, subjects...)
 	}
+}
+
+// Logger returns the initialized logger instance
+func (j *JetStream) Logger() logger.Logger {
+	return j.logger
 }
 
 // StreamExists returns whether a stream by the given name exists

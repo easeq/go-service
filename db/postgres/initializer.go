@@ -30,7 +30,7 @@ func (i *Initializer) AddDependency(dep interface{}) error {
 // Dependencies returns the string names of service components
 // that are required as dependencies for this component
 func (i *Initializer) Dependencies() []string {
-	return []string{"logger"}
+	return []string{logger.LOGGER}
 }
 
 // CanRun returns true if the component has anything to Run
@@ -42,7 +42,7 @@ func (i *Initializer) CanRun() bool {
 func (i *Initializer) Run(ctx context.Context) error {
 	// Run migrations
 	if err := i.pg.Migrate(); err != nil {
-		i.pg.logger.Errorw(
+		i.pg.logger.Debugw(
 			"Database migration failed",
 			"error", err,
 		)

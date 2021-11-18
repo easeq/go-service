@@ -3,13 +3,18 @@ package broker
 import (
 	"bytes"
 	"fmt"
-	"log"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 )
 
-type Trace struct{}
+type Trace struct {
+	b Broker
+}
+
+func NewTrace(b Broker) *Trace {
+	return &Trace{b}
+}
 
 // TraceMsg is used to trace the message using an opentracing
 type TraceMsg struct {
@@ -37,6 +42,11 @@ func (t *Trace) Publish(topic string, publish func(*TraceMsg) error) error {
 			opentracing.Binary,
 			&tm,
 		); err != nil {
+			t.b.Logger().Debugw(
+				"ERROR: Injecting tracer",
+				"method", "goservice.broker.Publish",
+				"error", err,
+			)
 			return err
 		}
 	}
@@ -51,7 +61,12 @@ func (t *Trace) Subscribe(topic string, dataWithSpanCtx []byte, subscribe func([
 	// Extract the span context.
 	sc, err := opentracing.GlobalTracer().Extract(opentracing.Binary, tm)
 	if err != nil {
-		log.Printf("Extract span error: %v", err)
+		t.b.Logger().Debugw(
+			"ERROR: Extracting span from tracer",
+			"method", "goservice.broker.Subscribe",
+			"error", err,
+		)
+		return err
 	}
 
 	operationName := fmt.Sprintf("Receive message (%s)", topic)

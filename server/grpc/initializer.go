@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"log"
 	"net"
 
 	"github.com/easeq/go-service/logger"
@@ -30,7 +29,7 @@ func (i *Initializer) AddDependency(dep interface{}) error {
 // Dependencies returns the string names of service components
 // that are required as dependencies for this component
 func (i *Initializer) Dependencies() []string {
-	return []string{"logger"}
+	return []string{logger.LOGGER}
 }
 
 // CanRun returns true if the component has anything to Run
@@ -50,8 +49,6 @@ func (i *Initializer) Run(ctx context.Context) error {
 		return err
 	}
 
-	// start gRPC server
-	log.Println("Starting gRPC server...")
 	return i.g.Server.Serve(listener)
 }
 
@@ -65,7 +62,7 @@ func (i *Initializer) Stop(ctx context.Context) error {
 	i.g.logger.Infow(
 		"gracefully stop gRPC server",
 		"method", "Stop",
-		"package", "goservice.server.gateway",
+		"package", "goservice.server.grpc",
 	)
 
 	i.g.Server.GracefulStop()

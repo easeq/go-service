@@ -28,7 +28,7 @@ func (i *Initializer) AddDependency(dep interface{}) error {
 // Dependencies returns the string names of service components
 // that are required as dependencies for this component
 func (i *Initializer) Dependencies() []string {
-	return []string{"logger"}
+	return []string{logger.LOGGER}
 }
 
 // CanRun returns true if the component has anything to Run
@@ -38,7 +38,7 @@ func (i *Initializer) CanRun() bool {
 
 // Run start the service component
 func (i *Initializer) Run(ctx context.Context) error {
-	i.j.logger.Infow("Unimplemented", "method", "Run", "package", "goservice.tracer,jaeger")
+	i.j.logger.Infow("Unimplemented", "method", "Run", "package", "goservice.tracer.jaeger")
 	return nil
 }
 
@@ -49,6 +49,6 @@ func (i *Initializer) CanStop() bool {
 
 // Run start the service component
 func (i *Initializer) Stop(ctx context.Context) error {
-	i.j.logger.Infow("Stop Jaeger", "method", "Stop", "package", "goservice.server.simple")
+	i.j.logger.Infow("Stop Jaeger", "method", "Stop", "package", "goservice.tracer.jaeger")
 	return i.j.closer.Close()
 }

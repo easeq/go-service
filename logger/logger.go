@@ -14,8 +14,6 @@ type Logger interface {
 	Debugf(template string, args ...interface{})
 	// Debugw logs a message with variadic key-value pairs
 	Debugw(message string, args ...interface{})
-	// Debugp logs a message with variadic key-value pairs
-	Debugp(message string, method string, pkg string, err error)
 	// Info logs a message
 	Info(args ...interface{})
 	// Infof logs a formatted message

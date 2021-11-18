@@ -2,7 +2,6 @@ package goservice
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 
@@ -38,8 +37,7 @@ func NewService(opts ...ServiceOption) *Service {
 	}
 
 	svc := &Service{
-		Config: cfg,
-		// Logger:     zap.NewZap(),
+		Config:     cfg,
 		components: make(map[string]component.Component),
 		exit:       make(chan os.Signal),
 	}
@@ -149,11 +147,28 @@ func (s *Service) Logger() logger.Logger {
 	return s.components[logger.LOGGER].(logger.Logger)
 }
 
+// IterateComponents - iterates over all the service components and invokes the callback
+func (s *Service) IterateComponents(cb func(comp component.Component) error) error {
+	var errcList []<-chan error
+	for k, comp := range s.components {
+		cErr := make(chan error, 1)
+		go func(key string, comp component.Component) {
+			defer close(cErr)
+
+			if err := cb(comp); err != nil {
+				cErr <- err
+			}
+		}(k, comp)
+		errcList = append(errcList, cErr)
+	}
+
+	return utils.WaitForError(errcList...)
+}
+
 // Init initializes the service
 // Configures dependencies
 func (s *Service) Init() error {
-	s.configure()
-	return nil
+	return s.configure()
 }
 
 func (s *Service) configure() error {
@@ -176,28 +191,7 @@ func (s *Service) configure() error {
 	})
 }
 
-// IterateComponents - iterates over all the service components and invokes the callback
-func (s *Service) IterateComponents(cb func(comp component.Component) error) error {
-	var errcList []<-chan error
-	for _, comp := range s.components {
-		svcComponent, ok := comp.(component.Component)
-		if !ok {
-			log.Println("Not a valid service component")
-		}
-
-		cErr := make(chan error, 1)
-		go func() {
-			if err := cb(svcComponent); err != nil {
-				cErr <- err
-			}
-		}()
-		errcList = append(errcList, cErr)
-	}
-
-	return utils.WaitForError(errcList...)
-}
-
-// Run runs both the HTTP and gRPC server
+// Run runs all the components of the service
 func (s *Service) Run(ctx context.Context) error {
 	return s.IterateComponents(func(comp component.Component) error {
 		if !comp.HasInitializer() {

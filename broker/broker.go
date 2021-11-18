@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/easeq/go-service/component"
+	"github.com/easeq/go-service/logger"
 )
 
 const (
@@ -25,6 +26,8 @@ type Handler interface {
 // Broker interface for adding new brokers
 type Broker interface {
 	component.Component
+	// Return logger
+	Logger() logger.Logger
 	// Publish a message
 	Publish(ctx context.Context, topic string, message interface{}, opts ...PublishOption) error
 	// Subscribe to a subject
