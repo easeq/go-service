@@ -1,17 +1,15 @@
 package grpc
 
 import (
-	"context"
 	"errors"
-	"log"
-	"net"
 	"os"
 	"strings"
 
 	goconfig "github.com/easeq/go-config"
+	"github.com/easeq/go-service/component"
+	"github.com/easeq/go-service/logger"
 	"github.com/easeq/go-service/registry"
 
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -29,12 +27,12 @@ const (
 
 // Grpc holds gRPC config
 type Grpc struct {
+	i             component.Initializer
+	logger        logger.Logger
 	ServerOptions []grpc.ServerOption
 	DialOptions   []grpc.DialOption
-	// Broker     broker.Broker
-	Logger *zap.Logger
-	Server *grpc.Server
-	exit   chan os.Signal
+	Server        *grpc.Server
+	exit          chan os.Signal
 	*Config
 }
 
@@ -55,6 +53,7 @@ func NewGrpc(opts ...Option) *Grpc {
 	}
 
 	g.Server = grpc.NewServer(g.ServerOptions...)
+	g.i = NewInitializer(g)
 
 	return g
 }
@@ -72,13 +71,6 @@ func WithGRPCDialOptions(opts ...grpc.DialOption) Option {
 		g.DialOptions = opts
 	}
 }
-
-// WithBroker passes the message broker externally
-// func WithBroker(opts broker.Broker) Option {
-// 	return func(g *Grpc) {
-// 		g.Broker = opts
-// 	}
-// }
 
 // Address returns the server address
 func (g *Grpc) Address() string {
@@ -105,33 +97,6 @@ func (g *Grpc) GetMetadata(key string) interface{} {
 	return nil
 }
 
-// Register registers the grpc server with the service registry
-// func (g *Grpc) Register(
-// 	ctx context.Context,
-// 	name string,
-// 	registry registry.ServiceRegistry,
-// ) *registry.ErrRegistryRegFailed {
-// 	return registry.Register(ctx, name, g.Host, g.Port, g.GetTags()...)
-// }
-
-// Run runs gRPC service
-func (g *Grpc) Run(ctx context.Context) error {
-	listener, err := net.Listen("tcp", g.Config.Address())
-	if err != nil {
-		return err
-	}
-
-	// start gRPC server
-	log.Println("Starting gRPC server...")
-	return g.Server.Serve(listener)
-}
-
-// ShutDown - gracefully stops the server
-func (g *Grpc) ShutDown(ctx context.Context) error {
-	g.Server.GracefulStop()
-	return nil
-}
-
 // AddRegistryTags - sets the registry tags for the server
 func (g *Grpc) AddRegistryTags(tags ...string) {
 	g.Config.Tags = strings.Join(
@@ -143,4 +108,12 @@ func (g *Grpc) AddRegistryTags(tags ...string) {
 // String - Returns the type of the server
 func (g *Grpc) String() string {
 	return SERVER_TYPE
+}
+
+func (g *Grpc) HasInitializer() bool {
+	return true
+}
+
+func (g *Grpc) Initializer() component.Initializer {
+	return g.i
 }

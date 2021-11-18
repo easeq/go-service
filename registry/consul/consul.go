@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	goconfig "github.com/easeq/go-config"
+	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/logger"
 	"github.com/easeq/go-service/registry"
 	"github.com/easeq/go-service/server"
@@ -28,6 +29,7 @@ type Config struct {
 
 // Consul registry
 type Consul struct {
+	i      component.Initializer
 	logger logger.Logger
 	server server.Server
 	*Config
@@ -40,9 +42,12 @@ func (c *Config) UnmarshalEnv(es env.EnvSet) error {
 
 // NewConsul returns a new consul registry
 func NewConsul() *Consul {
-	return &Consul{
+	c := &Consul{
 		Config: goconfig.NewEnvConfig(new(Config)).(*Config),
 	}
+
+	c.i = NewInitializer(c)
+	return c
 }
 
 // Register registers service with the registry.
@@ -86,28 +91,10 @@ func (c *Consul) ToString() string {
 	return "consul"
 }
 
-// AddDependency adds necessary service components as dependencies
-func (c *Consul) AddDependency(dep interface{}) error {
-	switch v := dep.(type) {
-	case logger.Logger:
-		c.logger = v
-	}
-
-	return nil
-}
-
-// Dependencies returns the string names of service components
-// that are required as dependencies for this component
-func (c *Consul) Dependencies() []string {
-	return []string{"logger"}
-}
-
-// CanRun returns true if the component has anything to Run
-func (c *Consul) CanRun() bool {
+func (c *Consul) HasInitializer() bool {
 	return true
 }
 
-// Run start the service component
-func (c *Consul) Run(ctx context.Context) error {
-	return c.Register(ctx, "<service-name>", c.server)
+func (c *Consul) Initializer() component.Initializer {
+	return c.i
 }

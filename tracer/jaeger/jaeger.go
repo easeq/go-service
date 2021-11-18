@@ -4,19 +4,23 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/easeq/go-service/component"
+	"github.com/easeq/go-service/logger"
 	"github.com/opentracing/opentracing-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 	jaegerlog "github.com/uber/jaeger-client-go/log"
 	"github.com/uber/jaeger-lib/metrics"
 )
 
-type jaeger struct {
+type Jaeger struct {
+	i      component.Initializer
+	logger logger.Logger
 	tracer opentracing.Tracer
 	closer io.Closer
 	config *jaegercfg.Configuration
 }
 
-func NewJaeger() *jaeger {
+func NewJaeger() *Jaeger {
 	config, err := jaegercfg.FromEnv()
 	if err != nil {
 		panic("error fetching jaeger config")
@@ -32,10 +36,15 @@ func NewJaeger() *jaeger {
 
 	opentracing.SetGlobalTracer(tracer)
 
-	return &jaeger{tracer, closer, config}
+	j := &Jaeger{tracer: tracer, closer: closer, config: config}
+	j.i = NewInitializer(j)
+	return j
 }
 
-// Stop jaeger connection
-func (j *jaeger) Stop() error {
-	return j.closer.Close()
+func (j *Jaeger) HasInitializer() bool {
+	return true
+}
+
+func (j *Jaeger) Initializer() component.Initializer {
+	return j.i
 }

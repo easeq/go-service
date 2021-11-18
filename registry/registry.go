@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/server"
 )
 
 const (
+	REGISTRY = "registry"
 	// TAGS_SEPARATOR is the separator used to split the tags passed in the tag env var for the specific service registry.
 	TAGS_SEPARATOR = ","
 )
@@ -24,6 +26,7 @@ func (e *ErrRegistryRegFailed) Error() string {
 
 // ServiceRegistry - service registry
 type ServiceRegistry interface {
+	component.Component
 	// Registers the service server
 	Register(ctx context.Context, name string, server server.Server) *ErrRegistryRegFailed
 	// Address returns the address of the registry

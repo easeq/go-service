@@ -1,6 +1,13 @@
 package logger
 
+import "github.com/easeq/go-service/component"
+
+const (
+	LOGGER = "logger"
+)
+
 type Logger interface {
+	component.Component
 	// Debug logs a message
 	Debug(args ...interface{})
 	// Debugf logs a formatted message

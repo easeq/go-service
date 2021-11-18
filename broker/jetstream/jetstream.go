@@ -8,6 +8,7 @@ import (
 
 	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/broker"
+	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/logger"
 	"github.com/easeq/go-service/tracer"
 	nats "github.com/nats-io/nats.go"
@@ -22,10 +23,11 @@ var (
 
 // Nsq holds our broker instance
 type JetStream struct {
-	logger        logger.Logger
-	tracer        tracer.Tracer
+	i             component.Initializer
 	t             *broker.Trace
 	nc            *nats.Conn
+	logger        logger.Logger
+	tracer        tracer.Tracer
 	jsCtx         nats.JetStreamContext
 	Js            nats.JetStreamContext
 	Subscriptions map[string]*nats.Subscription
@@ -46,6 +48,7 @@ func NewJetStream(opts ...broker.Option) *JetStream {
 	}
 
 	j := &JetStream{
+		i:             nil,
 		t:             new(broker.Trace),
 		nc:            nc,
 		jsCtx:         js,
@@ -58,6 +61,7 @@ func NewJetStream(opts ...broker.Option) *JetStream {
 		opt(j)
 	}
 
+	j.i = NewInitializer(j)
 	return j
 }
 
@@ -154,44 +158,10 @@ func (j *JetStream) Unsubscribe(topic string) error {
 	return j.Subscriptions[topic].Unsubscribe()
 }
 
-// Close shuts down the broker
-func (j *JetStream) Close() error {
-	for _, sub := range j.Subscriptions {
-		if err := sub.Unsubscribe(); err != nil {
-			j.logger.Errorf("JetStream close connection error: %s", err)
-			return err
-		}
-	}
-
-	j.nc.Close()
-	return nil
+func (j *JetStream) HasInitializer() bool {
+	return true
 }
 
-// AddDependency adds necessary service components as dependencies
-func (j *JetStream) AddDependency(dep interface{}) error {
-	switch v := dep.(type) {
-	case logger.Logger:
-		j.logger = v
-	case tracer.Tracer:
-		j.tracer = v
-	}
-
-	return nil
-}
-
-// Dependencies returns the string names of service components
-// that are required as dependencies for this component
-func (j *JetStream) Dependencies() []string {
-	return []string{"logger", "tracer"}
-}
-
-// CanRun returns true if the component has anything to Run
-func (j *JetStream) CanRun() bool {
-	return false
-}
-
-// Run start the service component
-func (j *JetStream) Run(ctx context.Context) error {
-	j.logger.Info("JetStream 'Run()': Unimplemented method")
-	return nil
+func (j *JetStream) Initializer() component.Initializer {
+	return j.i
 }

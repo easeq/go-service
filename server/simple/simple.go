@@ -1,15 +1,14 @@
 package simple
 
 import (
-	"context"
 	"errors"
 	"os"
 	"strings"
 
 	goconfig "github.com/easeq/go-config"
+	"github.com/easeq/go-service/component"
+	"github.com/easeq/go-service/logger"
 	"github.com/easeq/go-service/registry"
-
-	"go.uber.org/zap"
 )
 
 var (
@@ -26,7 +25,8 @@ const (
 
 // Grpc holds gRPC config
 type Simple struct {
-	Logger *zap.Logger
+	i      component.Initializer
+	logger logger.Logger
 	exit   chan os.Signal
 	*Config
 }
@@ -73,17 +73,6 @@ func (s *Simple) GetMetadata(key string) interface{} {
 	return nil
 }
 
-// Run runs gRPC service
-func (s *Simple) Run(ctx context.Context) error {
-	<-ctx.Done()
-	return nil
-}
-
-// ShutDown - gracefully stops the server
-func (s *Simple) ShutDown(ctx context.Context) error {
-	return nil
-}
-
 // AddRegistryTags - sets the registry tags for the server
 func (s *Simple) AddRegistryTags(tags ...string) {
 	s.Config.Tags = strings.Join(
@@ -95,4 +84,12 @@ func (s *Simple) AddRegistryTags(tags ...string) {
 // String - Returns the type of the server
 func (s *Simple) String() string {
 	return SERVER_TYPE
+}
+
+func (s *Simple) HasInitializer() bool {
+	return true
+}
+
+func (s *Simple) Initializer() component.Initializer {
+	return s.i
 }

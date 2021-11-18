@@ -7,6 +7,9 @@ import (
 
 	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/broker"
+	"github.com/easeq/go-service/component"
+	"github.com/easeq/go-service/logger"
+	"github.com/easeq/go-service/tracer"
 	"github.com/nsqio/go-nsq"
 )
 
@@ -17,7 +20,10 @@ var (
 
 // Nsq holds our broker instance
 type Nsq struct {
+	i         component.Initializer
 	t         *broker.Trace
+	logger    logger.Logger
+	tracer    tracer.Tracer
 	Producer  *nsq.Producer
 	Consumers map[string]*nsq.Consumer
 	*Config
@@ -32,12 +38,15 @@ func NewNsq() *Nsq {
 		panic("error starting nsq producer")
 	}
 
-	return &Nsq{
+	n := &Nsq{
 		t:         new(broker.Trace),
 		Producer:  producer,
 		Consumers: make(map[string]*nsq.Consumer),
 		Config:    config,
 	}
+
+	n.i = NewInitializer(n)
+	return n
 }
 
 // Publish publishes the topic message
@@ -84,13 +93,10 @@ func (n *Nsq) Unsubscribe(topic string) error {
 	return nil
 }
 
-// Close shuts down the broker
-func (n *Nsq) Close() error {
-	n.Producer.Stop()
+func (n *Nsq) HasInitializer() bool {
+	return true
+}
 
-	for _, consumer := range n.Consumers {
-		consumer.Stop()
-	}
-
-	return nil
+func (n *Nsq) Initializer() component.Initializer {
+	return n.i
 }

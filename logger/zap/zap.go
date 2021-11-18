@@ -2,11 +2,11 @@ package zap
 
 import (
 	goconfig "github.com/easeq/go-config"
+	"github.com/easeq/go-service/component"
 	uber_zap "go.uber.org/zap"
 )
 
 type zap struct {
-	initializer   interface{}
 	config        *Config
 	sugaredLogger *uber_zap.SugaredLogger
 }
@@ -39,7 +39,7 @@ func NewZap() *zap {
 	// 	panic(err)
 	// }
 
-	return &zap{nil, config, sugaredLogger}
+	return &zap{config, sugaredLogger}
 }
 
 func (l *zap) Debug(args ...interface{}) {
@@ -126,23 +126,10 @@ func (l *zap) Fatalw(message string, args ...interface{}) {
 	l.sugaredLogger.Fatalw(message, args...)
 }
 
-// // AddDependency adds necessary service components as dependencies
-// func (l *zap) AddDependency(dep interface{}) error {
-// 	return nil
-// }
+func (l *zap) HasInitializer() bool {
+	return false
+}
 
-// // Dependencies returns the string names of service components
-// // that are required as dependencies for this component
-// func (l *zap) Dependencies() []string {
-// 	return []string{}
-// }
-
-// // CanRun returns true if the component has anything to Run
-// func (l *zap) CanRun() bool {
-// 	return false
-// }
-
-// // Run start the service component
-// func (l *zap) Run(ctx context.Context) error {
-// 	return nil
-// }
+func (l *zap) Initializer() component.Initializer {
+	return nil
+}

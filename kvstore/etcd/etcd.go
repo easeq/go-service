@@ -5,7 +5,9 @@ import (
 	"errors"
 	"log"
 
+	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/kvstore"
+	"github.com/easeq/go-service/logger"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
@@ -35,8 +37,10 @@ const (
 
 // Etcd holds our etcd instance
 type Etcd struct {
-	*clientv3.Client
-	*Config
+	i      component.Initializer
+	logger logger.Logger
+	Client *clientv3.Client
+	Config *Config
 }
 
 // NewEtcd returns a new instance of etcd with etcd client and config
@@ -50,7 +54,10 @@ func NewEtcd(config *Config) *Etcd {
 		panic(ErrCreatingEtcdClient)
 	}
 
-	return &Etcd{client, config}
+	e := &Etcd{Client: client, Config: config}
+	e.i = NewInitializer(e)
+
+	return e
 }
 
 // Init initializes the store with the given options
@@ -221,13 +228,15 @@ func (e *Etcd) Unsubscribe(ctx context.Context, key string) error {
 	return nil
 }
 
-// Close the etcd client
-func (e *Etcd) Close() error {
-	e.Client.Watcher.Close()
-	return e.Client.Close()
-}
-
 // String returns the name of the store implementation
 func (e *Etcd) String() string {
 	return "kvstore-etcd"
+}
+
+func (e *Etcd) HasInitializer() bool {
+	return true
+}
+
+func (e *Etcd) Initializer() component.Initializer {
+	return e.i
 }

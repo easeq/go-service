@@ -1,11 +1,11 @@
-package db
+package postgres
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 
 	goconfig "github.com/easeq/go-config"
+	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/logger"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database"
@@ -33,8 +33,9 @@ const (
 
 // Postgres contains database instance
 type Postgres struct {
-	Handle *sql.DB
+	i      component.Initializer
 	logger logger.Logger
+	Handle *sql.DB
 	*Config
 }
 
@@ -51,25 +52,18 @@ func newConnection(uri string) *sql.DB {
 func NewPostgres() *Postgres {
 	cfg := GetConfig()
 
-	return &Postgres{
+	pg := &Postgres{
 		Handle: newConnection(cfg.GetURI()),
 		Config: cfg,
 	}
+
+	pg.i = NewInitializer(pg)
+	return pg
 }
 
 // GetConfig returns the DB config
 func GetConfig() *Config {
 	return goconfig.NewEnvConfig(new(Config)).(*Config)
-}
-
-// Init database
-func (db *Postgres) Init() error {
-	// Run migrations
-	if err := db.Migrate(); err != nil {
-		db.logger.Debugf("%s: %s", ErrDBMigrationFailed, err)
-	}
-
-	return nil
 }
 
 // Migrate runs all remaining db migrations
@@ -121,44 +115,10 @@ func (db *Postgres) instance() (database.Driver, error) {
 	return driverInstance, nil
 }
 
-// Close database connection
-func (db *Postgres) Close() error {
-	db.logger.Infow(
-		"Closing database connection",
-	)
-	return db.Handle.Close()
-}
-
-// AddDependency adds necessary service components as dependencies
-func (db *Postgres) AddDependency(dep interface{}) error {
-	switch v := dep.(type) {
-	case logger.Logger:
-		db.logger = v
-	}
-
-	return nil
-}
-
-// Dependencies returns the string names of service components
-// that are required as dependencies for this component
-func (db *Postgres) Dependencies() []string {
-	return []string{"logger"}
-}
-
-// CanRun returns true if the component has anything to Run
-func (db *Postgres) CanRun() bool {
+func (db *Postgres) HasInitializer() bool {
 	return true
 }
 
-// Run start the service component
-func (db *Postgres) Run(ctx context.Context) error {
-	// Run migrations
-	if err := db.Migrate(); err != nil {
-		db.logger.Errorw(
-			"Database migration failed",
-			"error", err,
-		)
-	}
-
-	return nil
+func (db *Postgres) Initializer() component.Initializer {
+	return db.i
 }
