@@ -3,7 +3,9 @@ package zap
 import (
 	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/component"
+	"go.uber.org/zap"
 	uber_zap "go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type Zap struct {
@@ -13,31 +15,12 @@ type Zap struct {
 
 func NewZap() *Zap {
 	config := goconfig.NewEnvConfig(new(Config)).(*Config)
-	// log.Println("config", config, config.ZapConfig())
-	// logger, err := config.ZapConfig().Build()
-	// log.Println("logger", logger, err)
-	// if err != nil {
-	// 	panic(err)
-	// }
 
-	// var encoder zapcore.Encoder
-	// if config.Encoding == "console" {
-	// 	encoder = zapcore.NewConsoleEncoder(config.ZapConfig().EncoderConfig)
-	// } else {
-	// 	encoder = zapcore.NewJSONEncoder(config.ZapConfig().EncoderConfig)
-	// }
-
-	// logWriter := zapcore.AddSync(os.Stdout)
-	// core := zapcore.NewCore(encoder, logWriter, config.AtomicLevel())
-	// logger := uber_zap.New(core, uber_zap.AddCaller(), uber_zap.AddCallerSkip(1))
-
-	logger, _ := uber_zap.NewDevelopment()
-	defer logger.Sync()
-
+	writerSyncer := config.GetLogWriter()
+	encoder := config.GetEncoder()
+	core := zapcore.NewCore(encoder, writerSyncer, config.AtomicLevel())
+	logger := uber_zap.New(core, zap.AddCaller(), zap.AddCallerSkip(2))
 	sugaredLogger := logger.Sugar()
-	// if err := sugaredLogger.Sync(); err != nil {
-	// 	panic(err)
-	// }
 
 	return &Zap{Config: config, Logger: sugaredLogger}
 }

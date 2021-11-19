@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	goconfig "github.com/easeq/go-config"
+	"github.com/natefinch/lumberjack"
+	"go.uber.org/zap"
 	uber_zap "go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
@@ -92,4 +94,20 @@ func (c *Config) ZapConfig() *uber_zap.Config {
 	}
 
 	return cfg
+}
+
+func (c *Config) GetLogWriter() zapcore.WriteSyncer {
+	lumberJackLogger := &lumberjack.Logger{
+		Filename:   "./data/logs/service.log",
+		MaxSize:    10,
+		MaxBackups: 5,
+		MaxAge:     30,
+		Compress:   false,
+	}
+
+	return zapcore.AddSync(lumberJackLogger)
+}
+
+func (c *Config) GetEncoder() zapcore.Encoder {
+	return zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
 }
