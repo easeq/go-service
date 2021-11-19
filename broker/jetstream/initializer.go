@@ -43,7 +43,7 @@ func (i *Initializer) CanRun() bool {
 
 // Run start the service component
 func (i *Initializer) Run(ctx context.Context) error {
-	i.j.logger.Infow("Unimplemented", "method", "Run", "package", "goservice.Broker().jetstream")
+	i.j.logger.Infow("Unimplemented", "method", "goservice.broker.jetstream.Run")
 	return nil
 }
 
@@ -56,7 +56,11 @@ func (i *Initializer) CanStop() bool {
 func (i *Initializer) Stop(ctx context.Context) error {
 	for _, sub := range i.j.Subscriptions {
 		if err := sub.Unsubscribe(); err != nil {
-			i.j.logger.Errorf("JetStream close connection error: %s", err)
+			i.j.logger.Errorw(
+				"JetStream close connection error: %s",
+				"error", err,
+				"method", "goservice.broker.jetstream.Stop",
+			)
 			return err
 		}
 	}

@@ -52,6 +52,6 @@ func (i *Initializer) CanStop() bool {
 
 // Stop - stops the running
 func (i *Initializer) Stop(ctx context.Context) error {
-	i.c.logger.Infow("Unimplemented", "method", "Stop", "package", "goservice.client.grpc")
+	i.c.logger.Infow("Unimplemented", "method", "goservice.client.grpc.Stop")
 	return nil
 }

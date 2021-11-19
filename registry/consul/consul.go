@@ -8,7 +8,6 @@ import (
 	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/logger"
-	"github.com/easeq/go-service/registry"
 	"github.com/easeq/go-service/server"
 
 	"github.com/Netflix/go-env"
@@ -55,7 +54,7 @@ func (c *Consul) Register(
 	ctx context.Context,
 	name string,
 	server server.Server,
-) *registry.ErrRegistryRegFailed {
+) error {
 	if err := consul.Register(
 		ctx,
 		name,
@@ -65,9 +64,15 @@ func (c *Consul) Register(
 		c.TTL,
 		server.RegistryTags()...,
 	); err != nil {
-		return &registry.ErrRegistryRegFailed{Value: err}
+		c.logger.Errorw(
+			"Service registration failed",
+			"error", err.Error(),
+			"method", "goservice.registry.consul.Register",
+		)
+		return err
 	}
 
+	c.logger.Infof("Successfully registered service: %s", name)
 	return nil
 }
 

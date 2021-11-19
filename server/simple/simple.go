@@ -45,6 +45,7 @@ func NewSimple(opts ...Option) *Simple {
 		opt(g)
 	}
 
+	g.i = NewInitializer(g)
 	return g
 }
 

@@ -40,8 +40,7 @@ func (i *Initializer) CanRun() bool {
 func (i *Initializer) Run(ctx context.Context) error {
 	i.s.logger.Infow(
 		"running simple server...",
-		"method", "Run",
-		"package", "goservice.server.simple",
+		"method", "goservice.server.simple.Run",
 	)
 	<-ctx.Done()
 	return nil
@@ -54,6 +53,6 @@ func (i *Initializer) CanStop() bool {
 
 // Run start the service component
 func (i *Initializer) Stop(ctx context.Context) error {
-	i.s.logger.Infow("Unimplemented", "method", "Stop", "package", "goservice.server.simple")
+	i.s.logger.Infow("Unimplemented", "method", "goservice.server.simple.Stop")
 	return nil
 }

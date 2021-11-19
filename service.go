@@ -2,6 +2,7 @@ package goservice
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 
@@ -122,7 +123,7 @@ func (s *Service) Tracer() tracer.Tracer {
 	return s.components[tracer.TRACER].(tracer.Tracer)
 }
 
-// Database returns the instance as database.Database
+// Database returns the instance as database.ServiceDatabase
 func (s *Service) Database() db.ServiceDatabase {
 	return s.components[db.DATABASE].(db.ServiceDatabase)
 }
@@ -148,17 +149,21 @@ func (s *Service) Logger() logger.Logger {
 }
 
 // IterateComponents - iterates over all the service components and invokes the callback
-func (s *Service) IterateComponents(cb func(comp component.Component) error) error {
+func (s *Service) IterateComponents(
+	ctx context.Context,
+	cb func(ctx context.Context, key string, comp component.Component) error,
+) error {
 	var errcList []<-chan error
 	for k, comp := range s.components {
 		cErr := make(chan error, 1)
-		go func(key string, comp component.Component) {
+		go func(ctx context.Context, key string, comp component.Component) {
 			defer close(cErr)
 
-			if err := cb(comp); err != nil {
+			if err := cb(ctx, key, comp); err != nil {
+				s.Logger().Errorw("k-err", "key", key, "error", err, "isNil", err == nil)
 				cErr <- err
 			}
-		}(k, comp)
+		}(ctx, k, comp)
 		errcList = append(errcList, cErr)
 	}
 
@@ -167,48 +172,79 @@ func (s *Service) IterateComponents(cb func(comp component.Component) error) err
 
 // Init initializes the service
 // Configures dependencies
-func (s *Service) Init() error {
-	return s.configure()
+func (s *Service) Init(ctx context.Context) error {
+	return s.IterateComponents(ctx, s.configure)
 }
 
-func (s *Service) configure() error {
-	return s.IterateComponents(func(comp component.Component) error {
-		if !comp.HasInitializer() {
-			return nil
-		}
-
-		initializer := comp.Initializer()
-		deps := initializer.Dependencies()
-		if len(deps) == 0 {
-			return nil
-		}
-
-		for _, dep := range deps {
-			initializer.AddDependency(s.components[dep])
-		}
-
+// configure is a callback function for IterateComponents to configure dependencies
+func (s *Service) configure(ctx context.Context, key string, comp component.Component) error {
+	if !comp.HasInitializer() {
 		return nil
-	})
+	}
+
+	s.Logger().Infof("Initializing component %s...", key)
+	initializer := comp.Initializer()
+	if initializer == nil {
+		return fmt.Errorf("undefined initializer for component %s", key)
+	}
+
+	deps := initializer.Dependencies()
+	if len(deps) == 0 {
+		return nil
+	}
+
+	for _, dep := range deps {
+		if err := initializer.AddDependency(
+			s.components[dep],
+		); err != nil {
+			s.Logger().Errorf("ERROR: adding dependency to %s: %s", key, err)
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Run runs all the components of the service
 func (s *Service) Run(ctx context.Context) error {
-	return s.IterateComponents(func(comp component.Component) error {
+	// Callback for running/starting service components
+	run := func(ctx context.Context, key string, comp component.Component) error {
 		if !comp.HasInitializer() {
 			return nil
 		}
 
 		initializer := comp.Initializer()
+		if initializer == nil {
+			return fmt.Errorf("undefined initializer for component %s", key)
+		}
+
 		if !initializer.CanRun() {
 			return nil
 		}
 
+		s.Logger().Infof("Run service component %s", key)
 		return initializer.Run(ctx)
-	})
+	}
+
+	return s.IterateComponents(ctx, run)
 }
 
 // Shutdown - shuts down the service by stopping all the components
 func (s *Service) ShutDown(ctx context.Context) {
+	// Callback for shutting down service components
+	shutdown := func(ctx context.Context, key string, comp component.Component) error {
+		if !comp.HasInitializer() {
+			return nil
+		}
+
+		initializer := comp.Initializer()
+		if !initializer.CanStop() {
+			return nil
+		}
+
+		return initializer.Stop(ctx)
+	}
+
 	signal.Notify(s.exit, os.Interrupt)
 	go func() {
 		select {
@@ -220,17 +256,6 @@ func (s *Service) ShutDown(ctx context.Context) {
 
 	exit:
 		s.Logger().Info("Shutting down service and it's components")
-		s.IterateComponents(func(comp component.Component) error {
-			if !comp.HasInitializer() {
-				return nil
-			}
-
-			initializer := comp.Initializer()
-			if !initializer.CanStop() {
-				return nil
-			}
-
-			return initializer.Stop(ctx)
-		})
+		s.IterateComponents(ctx, shutdown)
 	}()
 }
