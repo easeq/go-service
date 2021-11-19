@@ -17,7 +17,7 @@ const (
 type ServiceRegistry interface {
 	component.Component
 	// Registers the service server
-	Register(ctx context.Context, name string, server server.Server) error
+	Register(ctx context.Context, server server.Server) error
 	// Address returns the address of the registry
 	Address() string
 	// ConnectionString returns the full formatted connection string

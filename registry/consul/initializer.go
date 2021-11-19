@@ -41,8 +41,8 @@ func (i *Initializer) CanRun() bool {
 
 // Run start the service component
 func (i *Initializer) Run(ctx context.Context) error {
-	i.c.logger.Info("Registering service <service-name>")
-	return i.c.Register(ctx, "<service-name>", i.c.server)
+	i.c.logger.Info("Registering service %s", i.c.ServiceName)
+	return i.c.Register(ctx, i.c.server)
 }
 
 // CanRun returns true if the component has anything to Run

@@ -160,7 +160,6 @@ func (s *Service) IterateComponents(
 			defer close(cErr)
 
 			if err := cb(ctx, key, comp); err != nil {
-				s.Logger().Errorw("k-err", "key", key, "error", err, "isNil", err == nil)
 				cErr <- err
 			}
 		}(ctx, k, comp)

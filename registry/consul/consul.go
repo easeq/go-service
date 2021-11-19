@@ -21,9 +21,10 @@ var (
 
 // Config - consul configuration
 type Config struct {
-	Host string `env:"CONSUL_HOST,default=localhost"`
-	Port int    `env:"CONSUL_PORT,default=8500"`
-	TTL  int    `env:"CONSUL_TTL,default=15"`
+	ServiceName string `env:"SERVICE_NAME"`
+	Host        string `env:"CONSUL_HOST,default=localhost"`
+	Port        int    `env:"CONSUL_PORT,default=8500"`
+	TTL         int    `env:"CONSUL_TTL,default=15"`
 }
 
 // Consul registry
@@ -52,12 +53,11 @@ func NewConsul() *Consul {
 // Register registers service with the registry.
 func (c *Consul) Register(
 	ctx context.Context,
-	name string,
 	server server.Server,
 ) error {
 	if err := consul.Register(
 		ctx,
-		name,
+		c.ServiceName,
 		server.Host(),
 		server.Port(),
 		c.Address(),
@@ -72,7 +72,7 @@ func (c *Consul) Register(
 		return err
 	}
 
-	c.logger.Infof("Successfully registered service: %s", name)
+	c.logger.Infof("Successfully registered service: %s", c.ServiceName)
 	return nil
 }
 
