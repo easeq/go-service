@@ -41,7 +41,6 @@ func (i *Initializer) CanRun() bool {
 func (i *Initializer) Run(ctx context.Context) error {
 	i.g.logger.Infow(
 		"Starting gRPC server",
-		"method", "goservice.server.grpc.Run",
 	)
 	listener, err := net.Listen("tcp", i.g.Config.Address())
 	if err != nil {
@@ -60,7 +59,6 @@ func (i *Initializer) CanStop() bool {
 func (i *Initializer) Stop(ctx context.Context) error {
 	i.g.logger.Infow(
 		"Gracefully stop gRPC server",
-		"method", "goservice.server.grpc.Stop",
 	)
 
 	i.g.Server.GracefulStop()

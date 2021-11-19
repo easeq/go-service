@@ -67,7 +67,6 @@ func (c *Consul) Register(
 		c.logger.Errorw(
 			"Service registration failed",
 			"error", err.Error(),
-			"method", "goservice.registry.consul.Register",
 		)
 		return err
 	}

@@ -40,7 +40,6 @@ func (i *Initializer) CanRun() bool {
 func (i *Initializer) Run(ctx context.Context) error {
 	i.g.logger.Infow(
 		"Starting HTTP/REST gRPC gateway...",
-		"method", "goservice.server.gateway.Run",
 	)
 	return i.g.Server.ListenAndServe()
 }
@@ -54,7 +53,6 @@ func (i *Initializer) CanStop() bool {
 func (i *Initializer) Stop(ctx context.Context) error {
 	i.g.logger.Infow(
 		"Shutting down HTTP/REST gRPC gateway...",
-		"method", "goservice.server.gateway.Stop",
 	)
 	return i.g.Server.Shutdown(ctx)
 }

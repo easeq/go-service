@@ -40,7 +40,7 @@ func (i *Initializer) CanRun() bool {
 
 // Run start the service component
 func (i *Initializer) Run(ctx context.Context) error {
-	i.g.logger.Infow("Unimplemented", "method", "goservice.client.grpc.Run")
+	i.g.logger.Infow("Unimplemented")
 	return nil
 }
 
@@ -51,6 +51,6 @@ func (i *Initializer) CanStop() bool {
 
 // Stop - stops the running
 func (i *Initializer) Stop(ctx context.Context) error {
-	i.g.logger.Infow("Unimplemented", "method", "goservice.client.grpc.Stop")
+	i.g.logger.Infow("Unimplemented")
 	return nil
 }

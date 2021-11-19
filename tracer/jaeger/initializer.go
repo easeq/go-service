@@ -38,7 +38,7 @@ func (i *Initializer) CanRun() bool {
 
 // Run start the service component
 func (i *Initializer) Run(ctx context.Context) error {
-	i.j.logger.Infow("Unimplemented", "method", "goservice.tracer.jaeger.Run")
+	i.j.logger.Infow("Unimplemented")
 	return nil
 }
 
@@ -49,6 +49,6 @@ func (i *Initializer) CanStop() bool {
 
 // Run start the service component
 func (i *Initializer) Stop(ctx context.Context) error {
-	i.j.logger.Infow("Stop Jaeger", "method", "goservice.tracer.jaeger.Stop")
+	i.j.logger.Infow("Stop Jaeger")
 	return i.j.closer.Close()
 }

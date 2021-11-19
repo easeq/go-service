@@ -92,7 +92,6 @@ func (e *Etcd) LeaseID(ctx context.Context, record *kvstore.Record) (clientv3.Le
 		e.logger.Errorw(
 			"Error getting metadata lease ID",
 			"error", err,
-			"method", "goservice.kvstore.etcd.LeaseID",
 		)
 		return 0, err
 	}
@@ -103,7 +102,6 @@ func (e *Etcd) LeaseID(ctx context.Context, record *kvstore.Record) (clientv3.Le
 			e.logger.Errorw(
 				"Error renewing existing lease",
 				"error", err,
-				"method", "goservice.kvstore.etcd.LeaseID",
 			)
 			return 0, err
 		}
@@ -118,7 +116,6 @@ func (e *Etcd) LeaseID(ctx context.Context, record *kvstore.Record) (clientv3.Le
 			e.logger.Errorw(
 				"Error creating a new lease",
 				"error", err,
-				"method", "goservice.kvstore.etcd.LeaseID",
 			)
 			return 0, err
 		}
@@ -141,7 +138,6 @@ func (e *Etcd) RenewLease(ctx context.Context, leaseID clientv3.LeaseID) error {
 		e.logger.Errorw(
 			"Error renewing given lease",
 			"error", err,
-			"method", "goservice.kvstore.etcd.RenewLease",
 		)
 		return err
 	}
@@ -159,7 +155,6 @@ func (e *Etcd) Put(ctx context.Context, record *kvstore.Record, opts ...kvstore.
 		e.logger.Errorw(
 			"Error fetching leaseID for the given record",
 			"error", err,
-			"method", "goservice.kvstore.etcd.Put",
 		)
 		return nil, err
 	}
@@ -174,7 +169,6 @@ func (e *Etcd) Put(ctx context.Context, record *kvstore.Record, opts ...kvstore.
 		e.logger.Errorw(
 			"Error saving record",
 			"error", err,
-			"method", "goservice.kvstore.etcd.Put",
 		)
 		return nil, err
 	}
@@ -197,7 +191,6 @@ func (e *Etcd) Get(ctx context.Context, key string, opts ...kvstore.GetOpt) ([]*
 			"Error fetching record for the given key",
 			"key", key,
 			"error", err,
-			"method", "goservice.kvstore.etcd.Get",
 		)
 		return nil, err
 	}
@@ -206,7 +199,6 @@ func (e *Etcd) Get(ctx context.Context, key string, opts ...kvstore.GetOpt) ([]*
 		e.logger.Errorw(
 			"No results for the given key",
 			"key", key,
-			"method", "goservice.kvstore.etcd.Get",
 		)
 		return nil, ErrNoResults
 	}

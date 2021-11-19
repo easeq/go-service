@@ -45,7 +45,6 @@ func (i *Initializer) Run(ctx context.Context) error {
 		i.pg.logger.Debugw(
 			"Database migration failed",
 			"error", err,
-			"method", "goservice.kvstore.postgres.Run",
 		)
 	}
 
@@ -59,6 +58,6 @@ func (i *Initializer) CanStop() bool {
 
 // Stop - stops the running
 func (i *Initializer) Stop(ctx context.Context) error {
-	i.pg.logger.Infow("Closing db connection", "method", "goservice.kvstore.postgres.Stop")
+	i.pg.logger.Infow("Closing db connection")
 	return i.pg.Handle.Close()
 }

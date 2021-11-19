@@ -1,8 +1,6 @@
 package zap
 
 import (
-	"strings"
-
 	goconfig "github.com/easeq/go-config"
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
@@ -12,29 +10,16 @@ import (
 	"github.com/Netflix/go-env"
 )
 
-const (
-	SEPARATOR = ","
-)
-
 // Config holds the etcd configuration
 type Config struct {
+	Dev              bool   `env:"LOGGER_DEV_MODE,default=true"`
 	Level            string `env:"LOGGER_LEVEL,default=debug"`
 	Encoding         string `env:"LOGGER_ENCODING,default=json"`
-	OutputPaths      string `env:"LOGGER_OUTPUT_PATHS,default=stderr"`
-	ErrorOutputPaths string `env:"LOGGER_ERROR_OUTPUT_PATHS,default=stderr"`
-	EncConfig        EncoderConfig
-}
-
-type EncoderConfig struct {
-	MessageKey       string `env:"LOGGER_ENC_MESSAGE_KEY,default=msg"`
-	LevelKey         string `env:"LOGGER_ENC_LEVEL_KEY,default=level"`
-	TimeKey          string `env:"LOGGER_ENC_TIME_KEY,default=ts"`
-	NameKey          string `env:"LOGGER_ENC_NAME_KEY,default=logger"`
-	CallerKey        string `env:"LOGGER_ENC_CALLER_KEY,default=caller"`
-	FunctionKey      string `env:"LOGGER_ENC_FUNCTION_KEY,default="`
-	StacktraceKey    string `env:"LOGGER_ENC_STACKTRACE_KEY,default=stacktrace"`
-	LineEnding       string `env:"LOGGER_ENC_LINE_ENDING,default=\n"`
-	ConsoleSeparator string `env:"LOGGER_ENC_CONSOLE_SEPARATOR,default=\t"`
+	OutputPath       string `env:"LOGGER_OUTPUT_PATH,default=./data/service.log"`
+	MaxFileSize      int    `env:"LOGGER_MAX_FILE_SIZE,default=10"`
+	MaxNumBackups    int    `env:"LOGGER_MAX_NUM_BACKUPS,default=5`
+	MaxRetentionDays int    `env:"LOGGER_MAX_RETENTION_DAYS,default=30"`
+	CompressOld      bool   `env:"LOGGER_COMPRESS_OLD,default=true"`
 }
 
 // NewConfig returns the env config for etcd client
@@ -53,61 +38,32 @@ func (c *Config) AtomicLevel() uber_zap.AtomicLevel {
 	return al
 }
 
-func (c *Config) OutputPathsArray() []string {
-	if c.OutputPaths == "" {
-		return []string{}
-	}
-
-	return strings.Split(c.OutputPaths, SEPARATOR)
-}
-
-func (c *Config) ErrorOutputPathsArray() []string {
-	if c.ErrorOutputPaths == "" {
-		return []string{}
-	}
-
-	return strings.Split(c.ErrorOutputPaths, SEPARATOR)
-}
-
-func (c *Config) EncoderConfig() zapcore.EncoderConfig {
-	return zapcore.EncoderConfig{
-		MessageKey:       c.EncConfig.MessageKey,
-		LevelKey:         c.EncConfig.LevelKey,
-		TimeKey:          c.EncConfig.TimeKey,
-		NameKey:          c.EncConfig.NameKey,
-		CallerKey:        c.EncConfig.CallerKey,
-		FunctionKey:      c.EncConfig.FunctionKey,
-		StacktraceKey:    c.EncConfig.StacktraceKey,
-		LineEnding:       c.EncConfig.LineEnding,
-		ConsoleSeparator: c.EncConfig.ConsoleSeparator,
-		EncodeTime:       zapcore.ISO8601TimeEncoder,
-	}
-}
-
-func (c *Config) ZapConfig() *uber_zap.Config {
-	cfg := &uber_zap.Config{
-		Level:            c.AtomicLevel(),
-		Encoding:         c.Encoding,
-		OutputPaths:      c.OutputPathsArray(),
-		ErrorOutputPaths: c.ErrorOutputPathsArray(),
-		EncoderConfig:    c.EncoderConfig(),
-	}
-
-	return cfg
-}
-
 func (c *Config) GetLogWriter() zapcore.WriteSyncer {
 	lumberJackLogger := &lumberjack.Logger{
-		Filename:   "./data/logs/service.log",
-		MaxSize:    10,
-		MaxBackups: 5,
-		MaxAge:     30,
-		Compress:   false,
+		Filename:   c.OutputPath,
+		MaxSize:    c.MaxFileSize,
+		MaxBackups: c.MaxNumBackups,
+		MaxAge:     c.MaxRetentionDays,
+		Compress:   c.CompressOld,
 	}
 
 	return zapcore.AddSync(lumberJackLogger)
 }
 
 func (c *Config) GetEncoder() zapcore.Encoder {
-	return zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
+	var encoderConfig zapcore.EncoderConfig
+	if c.Dev {
+		encoderConfig = zap.NewDevelopmentEncoderConfig()
+	} else {
+		encoderConfig = zap.NewProductionEncoderConfig()
+	}
+
+	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+
+	if c.Encoding == "json" {
+		return zapcore.NewJSONEncoder(encoderConfig)
+	}
+
+	return zapcore.NewConsoleEncoder(encoderConfig)
 }

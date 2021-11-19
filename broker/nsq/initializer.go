@@ -41,7 +41,7 @@ func (i *Initializer) CanRun() bool {
 
 // Run start the service component
 func (i *Initializer) Run(ctx context.Context) error {
-	i.n.logger.Infow("Unimplemented", "method", "goservice.broker.nsq.Run")
+	i.n.logger.Infow("Unimplemented")
 	return nil
 }
 

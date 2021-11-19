@@ -15,11 +15,12 @@ type Zap struct {
 
 func NewZap() *Zap {
 	config := goconfig.NewEnvConfig(new(Config)).(*Config)
-
-	writerSyncer := config.GetLogWriter()
-	encoder := config.GetEncoder()
-	core := zapcore.NewCore(encoder, writerSyncer, config.AtomicLevel())
-	logger := uber_zap.New(core, zap.AddCaller(), zap.AddCallerSkip(2))
+	core := zapcore.NewCore(
+		config.GetEncoder(),
+		config.GetLogWriter(),
+		config.AtomicLevel(),
+	)
+	logger := uber_zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
 	sugaredLogger := logger.Sugar()
 
 	return &Zap{Config: config, Logger: sugaredLogger}

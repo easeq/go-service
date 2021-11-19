@@ -40,7 +40,7 @@ func (i *Initializer) CanRun() bool {
 
 // Run start the service component
 func (i *Initializer) Run(ctx context.Context) error {
-	i.e.logger.Infow("Unimplemented", "method", "goservice.kvstore.etcd.Run")
+	i.e.logger.Infow("Unimplemented")
 	return nil
 }
 
@@ -51,9 +51,9 @@ func (i *Initializer) CanStop() bool {
 
 // Stop - stops the running
 func (i *Initializer) Stop(ctx context.Context) error {
-	i.e.logger.Infow("Closing etcd watcher", "method", "goservice.kvstore.etcd.Stop")
+	i.e.logger.Infow("Closing etcd watcher")
 	i.e.Client.Watcher.Close()
 
-	i.e.logger.Infow("Closing etcd client", "method", "goservice.kvstore.etcd.Stop")
+	i.e.logger.Infow("Closing etcd client")
 	return i.e.Client.Close()
 }

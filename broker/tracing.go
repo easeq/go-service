@@ -44,7 +44,7 @@ func (t *Trace) Publish(topic string, publish func(*TraceMsg) error) error {
 		); err != nil {
 			t.b.Logger().Debugw(
 				"ERROR: Injecting tracer",
-				"method", "goservice.broker.Publish",
+
 				"error", err,
 			)
 			return err
@@ -63,7 +63,7 @@ func (t *Trace) Subscribe(topic string, dataWithSpanCtx []byte, subscribe func([
 	if err != nil {
 		t.b.Logger().Debugw(
 			"ERROR: Extracting span from tracer",
-			"method", "goservice.broker.Subscribe",
+
 			"error", err,
 		)
 		return err
