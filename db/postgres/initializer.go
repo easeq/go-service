@@ -45,7 +45,7 @@ func (i *Initializer) Run(ctx context.Context) error {
 		i.pg.logger.Debugw(
 			"Database migration failed",
 			"error", err,
-			"goservice.kvstore.postgres.Run",
+			"method", "goservice.kvstore.postgres.Run",
 		)
 	}
 

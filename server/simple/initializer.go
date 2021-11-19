@@ -39,7 +39,7 @@ func (i *Initializer) CanRun() bool {
 // Run start the service component
 func (i *Initializer) Run(ctx context.Context) error {
 	i.s.logger.Infow(
-		"running simple server...",
+		"Running simple server...",
 		"method", "goservice.server.simple.Run",
 	)
 	<-ctx.Done()

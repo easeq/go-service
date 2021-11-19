@@ -59,7 +59,7 @@ func (i *Initializer) CanStop() bool {
 // Run start the service component
 func (i *Initializer) Stop(ctx context.Context) error {
 	i.g.logger.Infow(
-		"gracefully stop gRPC server",
+		"Gracefully stop gRPC server",
 		"method", "goservice.server.grpc.Stop",
 	)
 

@@ -39,7 +39,7 @@ func (i *Initializer) CanRun() bool {
 // Run start the service component
 func (i *Initializer) Run(ctx context.Context) error {
 	i.g.logger.Infow(
-		"starting HTTP/REST gRPC gateway...",
+		"Starting HTTP/REST gRPC gateway...",
 		"method", "goservice.server.gateway.Run",
 	)
 	return i.g.Server.ListenAndServe()
@@ -53,7 +53,7 @@ func (i *Initializer) CanStop() bool {
 // Run start the service component
 func (i *Initializer) Stop(ctx context.Context) error {
 	i.g.logger.Infow(
-		"shutting down HTTP/REST gRPC gateway...",
+		"Shutting down HTTP/REST gRPC gateway...",
 		"method", "goservice.server.gateway.Stop",
 	)
 	return i.g.Server.Shutdown(ctx)
