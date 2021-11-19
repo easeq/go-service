@@ -3,7 +3,6 @@ package etcd
 import (
 	"context"
 	"errors"
-	"log"
 
 	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/kvstore"
@@ -62,7 +61,7 @@ func NewEtcd(config *Config) *Etcd {
 
 // Init initializes the store with the given options
 func (e *Etcd) Init(opts ...kvstore.Option) error {
-	log.Printf("Unsupported method %s Init", e.String())
+	e.logger.Infof("Unsupported method %s Init", e.String())
 	return nil
 }
 
@@ -70,12 +69,13 @@ func (e *Etcd) Init(opts ...kvstore.Option) error {
 func (e *Etcd) GetMetadataLeaseID(record *kvstore.Record) (clientv3.LeaseID, error) {
 	lID, ok := record.Metadata[KEY_LEASE_ID]
 	if !ok {
-		// LeaseID is not a required field, so no error
+		e.logger.Debug("LeaseID is not a required field")
 		return 0, nil
 	}
 
 	leaseID, ok := lID.(clientv3.LeaseID)
 	if !ok {
+		e.logger.Error(ErrInvalidLeaseID.Error())
 		return 0, ErrInvalidLeaseID
 	}
 
@@ -89,12 +89,22 @@ func (e *Etcd) GetMetadataLeaseID(record *kvstore.Record) (clientv3.LeaseID, err
 func (e *Etcd) LeaseID(ctx context.Context, record *kvstore.Record) (clientv3.LeaseID, error) {
 	leaseID, err := e.GetMetadataLeaseID(record)
 	if err != nil {
+		e.logger.Errorw(
+			"Error getting metadata lease ID",
+			"error", err,
+			"method", "goservice.kvstore.etcd.LeaseID",
+		)
 		return 0, err
 	}
 
 	// Renew and use existing lease
 	if leaseID != 0 {
 		if err := e.RenewLease(ctx, leaseID); err != nil {
+			e.logger.Errorw(
+				"Error renewing existing lease",
+				"error", err,
+				"method", "goservice.kvstore.etcd.LeaseID",
+			)
 			return 0, err
 		}
 
@@ -105,6 +115,11 @@ func (e *Etcd) LeaseID(ctx context.Context, record *kvstore.Record) (clientv3.Le
 	if record.Expiry != 0 {
 		l, err := e.Client.Lease.Grant(ctx, int64(record.Expiry.Seconds()))
 		if err != nil {
+			e.logger.Errorw(
+				"Error creating a new lease",
+				"error", err,
+				"method", "goservice.kvstore.etcd.LeaseID",
+			)
 			return 0, err
 		}
 
@@ -123,6 +138,11 @@ func (e *Etcd) RenewLease(ctx context.Context, leaseID clientv3.LeaseID) error {
 	}
 
 	if _, err := e.Client.Lease.KeepAliveOnce(ctx, leaseID); err != nil {
+		e.logger.Errorw(
+			"Error renewing given lease",
+			"error", err,
+			"method", "goservice.kvstore.etcd.RenewLease",
+		)
 		return err
 	}
 
@@ -136,6 +156,11 @@ func (e *Etcd) RenewLease(ctx context.Context, leaseID clientv3.LeaseID) error {
 func (e *Etcd) Put(ctx context.Context, record *kvstore.Record, opts ...kvstore.SetOpt) (*kvstore.Record, error) {
 	leaseID, err := e.LeaseID(ctx, record)
 	if err != nil {
+		e.logger.Errorw(
+			"Error fetching leaseID for the given record",
+			"error", err,
+			"method", "goservice.kvstore.etcd.Put",
+		)
 		return nil, err
 	}
 
@@ -146,6 +171,11 @@ func (e *Etcd) Put(ctx context.Context, record *kvstore.Record, opts ...kvstore.
 	}
 
 	if _, err := e.Client.Put(ctx, record.Key, string(record.Value), putOpts...); err != nil {
+		e.logger.Errorw(
+			"Error saving record",
+			"error", err,
+			"method", "goservice.kvstore.etcd.Put",
+		)
 		return nil, err
 	}
 
@@ -163,10 +193,21 @@ func (e *Etcd) Put(ctx context.Context, record *kvstore.Record, opts ...kvstore.
 func (e *Etcd) Get(ctx context.Context, key string, opts ...kvstore.GetOpt) ([]*kvstore.Record, error) {
 	response, err := e.Client.Get(ctx, key)
 	if err != nil {
+		e.logger.Errorw(
+			"Error fetching record for the given key",
+			"key", key,
+			"error", err,
+			"method", "goservice.kvstore.etcd.Get",
+		)
 		return nil, err
 	}
 
 	if response.Count == 0 {
+		e.logger.Errorw(
+			"No results for the given key",
+			"key", key,
+			"method", "goservice.kvstore.etcd.Get",
+		)
 		return nil, ErrNoResults
 	}
 
@@ -203,7 +244,7 @@ func (e *Etcd) Txn(ctx context.Context, handler kvstore.TxnHandler) error {
 // Subscribe to the changes made to the given key
 func (e *Etcd) Subscribe(ctx context.Context, key string, handler kvstore.SubscribeHandler) error {
 	cWatch := e.Client.Watch(ctx, key)
-	log.Printf("set WATCH on %s", key)
+	e.logger.Infof("set WATCH on %s", key)
 
 	for {
 		watchResp, ok := <-cWatch
@@ -224,7 +265,7 @@ func (e *Etcd) Subscribe(ctx context.Context, key string, handler kvstore.Subscr
 
 // Unsubscribe from a subscription
 func (e *Etcd) Unsubscribe(ctx context.Context, key string) error {
-	log.Printf("Unsupported method %s Unsubscribe", e.String())
+	e.logger.Infof("Unsupported method %s Unsubscribe", e.String())
 	return nil
 }
 
