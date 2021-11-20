@@ -1,26 +1,49 @@
 package broker
 
-import "context"
+import (
+	"context"
 
-// Message sent by the Publisher
-type Message interface{}
+	"github.com/easeq/go-service/component"
+	"github.com/easeq/go-service/logger"
+)
+
+const (
+	BROKER = "broker"
+)
+
+// Message structure
+type Message struct {
+	Body   []byte
+	Extras interface{}
+}
 
 // Handler used by the subscriber
-type Handler interface{}
+type Handler interface {
+	// Handles the subscribed message
+	Handle(m *Message) error
+}
 
 // Broker interface for adding new brokers
 type Broker interface {
-	// Run broker
-	Run(ctx context.Context, opts ...RunOption) error
+	component.Component
+	// Return logger
+	Logger() logger.Logger
 	// Publish a message
-	Publish(ctx context.Context, topic string, message Message) error
+	Publish(ctx context.Context, topic string, message interface{}, opts ...PublishOption) error
 	// Subscribe to a subject
 	Subscribe(ctx context.Context, topic string, handler Handler, opts ...SubscribeOption) error
 	// Unsubscribe from a subject
 	Unsubscribe(topic string) error
-	// Close a connection
-	Close() error
 }
+
+// Option to pass as arg while creating new broker instance
+type Option func(Broker)
+
+// Interface for a message publisher
+type Publisher interface{}
+
+// PublishOption to pass as arg while publishing a message
+type PublishOption func(Publisher)
 
 // Interface for a subscription subscriber
 type Subscriber interface{}

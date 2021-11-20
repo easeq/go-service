@@ -4,7 +4,12 @@ import (
 	"context"
 	"errors"
 
+	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/pool"
+)
+
+const (
+	CLIENT = "client"
 )
 
 var (
@@ -23,6 +28,7 @@ type DialOption interface{}
 
 // Client interface to implement custom clients
 type Client interface {
+	component.Component
 	// Call client method
 	Call(ctx context.Context, sc ServiceClient, method string, req interface{}, res interface{}, opts ...CallOption) error
 	// Stream client

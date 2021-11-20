@@ -1,11 +1,11 @@
-package db
+package postgres
 
 import (
 	"database/sql"
 	"errors"
-	"log"
 
-	goconfig "github.com/easeq/go-config"
+	"github.com/easeq/go-service/component"
+	"github.com/easeq/go-service/logger"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -21,6 +21,8 @@ var (
 	ErrMigrationLoad = errors.New("error loading new migrations")
 	// ErrCreateDBInstance returned when db instance creation fails
 	ErrCreateDBInstance = errors.New("error while creating a new DB instance")
+	// ErrDBMigrationFailed returned when db migration fails
+	ErrDBMigrationFailed = errors.New("db migration failed")
 )
 
 const (
@@ -30,6 +32,8 @@ const (
 
 // Postgres contains database instance
 type Postgres struct {
+	i      component.Initializer
+	logger logger.Logger
 	Handle *sql.DB
 	*Config
 }
@@ -45,33 +49,24 @@ func newConnection(uri string) *sql.DB {
 
 // NewPostgres returns new connection to the postgres db
 func NewPostgres() *Postgres {
-	cfg := GetConfig()
-
-	return &Postgres{
+	cfg := NewConfig()
+	pg := &Postgres{
 		Handle: newConnection(cfg.GetURI()),
 		Config: cfg,
 	}
-}
 
-// GetConfig returns the DB config
-func GetConfig() *Config {
-	return goconfig.NewEnvConfig(new(Config)).(*Config)
-}
-
-// Init database
-func (db *Postgres) Init() error {
-	// Run migrations
-	if err := db.Migrate(); err != nil {
-		log.Println(err)
-	}
-
-	return nil
+	pg.i = NewInitializer(pg)
+	return pg
 }
 
 // Migrate runs all remaining db migrations
 func (db *Postgres) Migrate() error {
 	instance, err := db.instance()
 	if err != nil {
+		db.logger.Fatalw(
+			ErrCreateDBInstance.Error(),
+			"error", err,
+		)
 		return ErrCreateDBInstance
 	}
 
@@ -82,10 +77,18 @@ func (db *Postgres) Migrate() error {
 	)
 
 	if err != nil {
+		db.logger.Fatalw(
+			ErrMigrationLoad.Error(),
+			"error", err,
+		)
 		return ErrMigrationLoad
 	}
 
 	if err := m.Up(); err != nil {
+		db.logger.Debugw(
+			"Migration UP failed",
+			"error", err,
+		)
 		return err
 	}
 
@@ -95,13 +98,20 @@ func (db *Postgres) Migrate() error {
 func (db *Postgres) instance() (database.Driver, error) {
 	driverInstance, err := postgres.WithInstance(db.Handle, &postgres.Config{})
 	if err != nil {
+		db.logger.Errorw(
+			"Postgres driverInstance creation failed",
+			"error", err,
+		)
 		return nil, err
 	}
 
 	return driverInstance, nil
 }
 
-// Close database connection
-func (db *Postgres) Close() error {
-	return db.Handle.Close()
+func (db *Postgres) HasInitializer() bool {
+	return true
+}
+
+func (db *Postgres) Initializer() component.Initializer {
+	return db.i
 }

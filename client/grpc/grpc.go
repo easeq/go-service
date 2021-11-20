@@ -7,6 +7,8 @@ import (
 	"sync"
 
 	"github.com/easeq/go-service/client"
+	"github.com/easeq/go-service/component"
+	"github.com/easeq/go-service/logger"
 	"github.com/easeq/go-service/pool"
 	"github.com/easeq/go-service/registry"
 	"google.golang.org/grpc"
@@ -41,6 +43,8 @@ type ClientOption func(*Grpc)
 // along with other configuration required to create the pool
 // It holds a reference to the service registry used by the service.
 type Grpc struct {
+	i         component.Initializer
+	logger    logger.Logger
 	pool      *pool.ConnectionPool
 	factory   pool.Factory
 	closeFunc pool.CloseFunc
@@ -62,6 +66,7 @@ func NewGrpc(opts ...ClientOption) *Grpc {
 		pool.WithCloseFunc(c.closeFunc),
 	)
 
+	c.i = NewInitializer(c)
 	return c
 }
 
@@ -166,6 +171,14 @@ func (c *Grpc) Stream(
 	}
 
 	return gs, nil
+}
+
+func (c *Grpc) HasInitializer() bool {
+	return true
+}
+
+func (g *Grpc) Initializer() component.Initializer {
+	return g.i
 }
 
 // GrpcStreamClient is the gRPC client that allows streaming. It holds the stream and the connection to the gRPC server.

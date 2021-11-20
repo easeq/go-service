@@ -1,11 +1,14 @@
-package broker
+package nsq
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
 
-	goconfig "github.com/easeq/go-config"
+	"github.com/easeq/go-service/broker"
+	"github.com/easeq/go-service/component"
+	"github.com/easeq/go-service/logger"
+	"github.com/easeq/go-service/tracer"
 	"github.com/nsqio/go-nsq"
 )
 
@@ -16,6 +19,10 @@ var (
 
 // Nsq holds our broker instance
 type Nsq struct {
+	i         component.Initializer
+	t         *broker.Trace
+	logger    logger.Logger
+	tracer    tracer.Tracer
 	Producer  *nsq.Producer
 	Consumers map[string]*nsq.Consumer
 	*Config
@@ -23,52 +30,55 @@ type Nsq struct {
 
 // NewNsq returns a new instance of NSQ
 func NewNsq() *Nsq {
-	config := goconfig.NewEnvConfig(new(Config)).(*Config)
+	config := NewConfig()
 
 	producer, err := nsq.NewProducer(config.Producer.Address(), config.NSQConfig())
 	if err != nil {
 		panic("error starting nsq producer")
 	}
 
-	return &Nsq{
+	n := &Nsq{
 		Producer:  producer,
 		Consumers: make(map[string]*nsq.Consumer),
 		Config:    config,
 	}
+
+	n.t = broker.NewTrace(n)
+	n.i = NewInitializer(n)
+	return n
 }
 
-// Run the broker until it's stopped
-func (n *Nsq) Run(ctx context.Context, opts ...RunOption) error {
-	<-ctx.Done()
-	
-	return nil
+// Logger returns the initialized logger instance
+func (n *Nsq) Logger() logger.Logger {
+	return n.logger
 }
 
 // Publish publishes the topic message
-func (n *Nsq) Publish(ctx context.Context, topic string, message Message) error {
+func (n *Nsq) Publish(ctx context.Context, topic string, message interface{}, opts ...broker.PublishOption) error {
 	payload, err := json.Marshal(message)
 	if err != nil {
 		return err
 	}
 
-	return n.Producer.Publish(topic, payload)
+	return n.t.Publish(topic, func(t *broker.TraceMsg) error {
+		// Add the payload/original message
+		t.Write(payload)
+
+		// Send the message with span over NSQ
+		return n.Producer.Publish(topic, payload)
+	})
 }
 
 // Subscribe subcribes for the given topic
-func (n *Nsq) Subscribe(ctx context.Context, topic string, handler Handler, opts ...SubscribeOption) error {
+func (n *Nsq) Subscribe(ctx context.Context, topic string, handler broker.Handler, opts ...broker.SubscribeOption) error {
 	subscriber := NewNsqSubscriber(n, topic, opts...)
 	consumer, err := nsq.NewConsumer(topic, subscriber.channel, n.NSQConfig())
 	if err != nil {
 		return err
 	}
 
-	nsqHandler, ok := handler.(nsq.Handler)
-	if !ok {
-		return ErrInvalidMessageHandler
-	}
-
+	nsqHandler := NewNsqHandler(n, topic, handler)
 	consumer.AddHandler(nsqHandler)
-
 	if err := consumer.ConnectToNSQD(n.Config.Producer.Address()); err != nil {
 		return err
 	}
@@ -87,38 +97,10 @@ func (n *Nsq) Unsubscribe(topic string) error {
 	return nil
 }
 
-// Close shuts down the broker
-func (n *Nsq) Close() error {
-	n.Producer.Stop()
-
-	for _, consumer := range n.Consumers {
-		consumer.Stop()
-	}
-
-	return nil
+func (n *Nsq) HasInitializer() bool {
+	return true
 }
 
-// NsqSubscriber holds additional options for nsq subscription
-type NsqSubscriber struct {
-	channel string
-}
-
-// NewNsqSubscriber returns a new subscriber instance for NSQ subscription
-func NewNsqSubscriber(n *Nsq, topic string, opts ...SubscribeOption) *NsqSubscriber {
-	subscriber := &NsqSubscriber{
-		channel: n.Channel(topic),
-	}
-
-	for _, opt := range opts {
-		opt(subscriber)
-	}
-
-	return subscriber
-}
-
-// WithChannelName defines a channel name for the subscriber
-func WithChannelName(name string) SubscribeOption {
-	return func(s Subscriber) {
-		s.(*NsqSubscriber).channel = name
-	}
+func (n *Nsq) Initializer() component.Initializer {
+	return n.i
 }

@@ -1,4 +1,4 @@
-package broker
+package nsq
 
 import (
 	"fmt"
@@ -6,14 +6,21 @@ import (
 	"github.com/Netflix/go-env"
 	"github.com/nsqio/go-nsq"
 
-	// Manages env config
-	_ "github.com/easeq/go-config"
+	"github.com/easeq/go-service/component"
 )
 
 // Producer holds config for NSQ producer
 type Producer struct {
 	Host string `env:"BROKER_PRODUCER_HOST,default=127.0.0.1"`
 	Port string `env:"BROKER_PRODUCER_PORT,default=4150"`
+}
+
+// NewConfig returns the parsed config for nsq from env
+func NewConfig() *Config {
+	c := new(Config)
+	component.NewConfig(c)
+
+	return c
 }
 
 // Address returns the formatted address for the producer

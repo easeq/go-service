@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Netflix/go-env"
-	// Manages env config
-	_ "github.com/easeq/go-config"
+	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/registry"
 )
 
@@ -18,9 +16,12 @@ type Config struct {
 	Metadata Metadata
 }
 
-// UnmarshalEnv env.EnvSet to GatewayConfig
-func (c *Config) UnmarshalEnv(es env.EnvSet) error {
-	return env.Unmarshal(es, c)
+// NewConfig returns the parsed config for gateway server from env
+func NewConfig() *Config {
+	c := new(Config)
+	component.NewConfig(c)
+
+	return c
 }
 
 // Address returns the full formatted http address

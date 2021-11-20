@@ -1,21 +1,14 @@
 package grpc
 
 import (
-	"context"
 	"errors"
-	"log"
-	"net"
 	"os"
 	"strings"
 
-	goconfig "github.com/easeq/go-config"
+	"github.com/easeq/go-service/component"
+	"github.com/easeq/go-service/logger"
 	"github.com/easeq/go-service/registry"
 
-	"github.com/opentracing/opentracing-go"
-	jaegercfg "github.com/uber/jaeger-client-go/config"
-	jaegerlog "github.com/uber/jaeger-client-go/log"
-	"github.com/uber/jaeger-lib/metrics"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -33,12 +26,12 @@ const (
 
 // Grpc holds gRPC config
 type Grpc struct {
+	i             component.Initializer
+	logger        logger.Logger
 	ServerOptions []grpc.ServerOption
 	DialOptions   []grpc.DialOption
-	// Broker     broker.Broker
-	Logger *zap.Logger
-	Server *grpc.Server
-	exit   chan os.Signal
+	Server        *grpc.Server
+	exit          chan os.Signal
 	*Config
 }
 
@@ -50,7 +43,7 @@ func NewGrpc(opts ...Option) *Grpc {
 	g := &Grpc{
 		DialOptions:   []grpc.DialOption{grpc.WithInsecure()},
 		ServerOptions: []grpc.ServerOption{},
-		Config:        goconfig.NewEnvConfig(new(Config)).(*Config),
+		Config:        NewConfig(),
 		exit:          make(chan os.Signal),
 	}
 
@@ -59,24 +52,9 @@ func NewGrpc(opts ...Option) *Grpc {
 	}
 
 	g.Server = grpc.NewServer(g.ServerOptions...)
+	g.i = NewInitializer(g)
 
 	return g
-}
-
-// GetLogger returns a new zap.Logger
-func GetLogger() *zap.Logger {
-	zapLogger, err := zap.NewProduction()
-	if err != nil {
-		log.Println("ZapLogger failed!")
-	}
-
-	defer func() {
-		if err := zapLogger.Sync(); err != nil {
-			log.Println("ZapLogger Sync failed")
-		}
-	}()
-
-	return zapLogger
 }
 
 // WithGrpcServerOptions adds gRPC options
@@ -92,13 +70,6 @@ func WithGRPCDialOptions(opts ...grpc.DialOption) Option {
 		g.DialOptions = opts
 	}
 }
-
-// WithBroker passes the message broker externally
-// func WithBroker(opts broker.Broker) Option {
-// 	return func(g *Grpc) {
-// 		g.Broker = opts
-// 	}
-// }
 
 // Address returns the server address
 func (g *Grpc) Address() string {
@@ -125,33 +96,6 @@ func (g *Grpc) GetMetadata(key string) interface{} {
 	return nil
 }
 
-// Register registers the grpc server with the service registry
-// func (g *Grpc) Register(
-// 	ctx context.Context,
-// 	name string,
-// 	registry registry.ServiceRegistry,
-// ) *registry.ErrRegistryRegFailed {
-// 	return registry.Register(ctx, name, g.Host, g.Port, g.GetTags()...)
-// }
-
-// Run runs gRPC service
-func (g *Grpc) Run(ctx context.Context) error {
-	listener, err := net.Listen("tcp", g.Config.Address())
-	if err != nil {
-		return err
-	}
-
-	// start gRPC server
-	log.Println("Starting gRPC server...")
-	return g.Server.Serve(listener)
-}
-
-// ShutDown - gracefully stops the server
-func (g *Grpc) ShutDown(ctx context.Context) error {
-	g.Server.GracefulStop()
-	return nil
-}
-
 // AddRegistryTags - sets the registry tags for the server
 func (g *Grpc) AddRegistryTags(tags ...string) {
 	g.Config.Tags = strings.Join(
@@ -165,20 +109,10 @@ func (g *Grpc) String() string {
 	return SERVER_TYPE
 }
 
-func init() {
-	otCfg, err := jaegercfg.FromEnv()
-	if err != nil {
-		log.Println("Error setting up opentracing: ", err)
-	}
+func (g *Grpc) HasInitializer() bool {
+	return true
+}
 
-	jLogger := jaegerlog.StdLogger
-	jMetricsFactory := metrics.NullFactory
-
-	tracer, _, _ := otCfg.NewTracer(
-		jaegercfg.Logger(jLogger),
-		jaegercfg.Metrics(jMetricsFactory),
-	)
-
-	// TODO: find a place to add closer.Close() to avoid premature closing
-	opentracing.SetGlobalTracer(tracer)
+func (g *Grpc) Initializer() component.Initializer {
+	return g.i
 }

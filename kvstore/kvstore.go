@@ -3,6 +3,12 @@ package kvstore
 import (
 	"context"
 	"time"
+
+	"github.com/easeq/go-service/component"
+)
+
+const (
+	KV_STORE = "kv-store"
 )
 
 // Option for initialization of the store
@@ -28,6 +34,7 @@ type TxnHandler interface {
 
 // KVStore is a key-value data storage interface
 type KVStore interface {
+	component.Component
 	// Init initializes the store with the given options
 	Init(opts ...Option) error
 	// Put the value for the key
@@ -42,8 +49,6 @@ type KVStore interface {
 	Subscribe(ctx context.Context, key string, handler SubscribeHandler) error
 	// Unsubscribe from a subscription
 	Unsubscribe(ctx context.Context, key string) error
-	// Close the store
-	Close() error
 	// String returns the name of the store implementation
 	String() string
 }

@@ -3,13 +3,13 @@ package gateway
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"os"
 	"strings"
 
-	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-redis-access-control/gateway"
+	"github.com/easeq/go-service/component"
+	"github.com/easeq/go-service/logger"
 	"github.com/easeq/go-service/registry"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 )
@@ -41,6 +41,8 @@ type HTTPServiceHandlerRegistrar func(context.Context, *Gateway) error
 
 // Gateway handle gRPC gateway
 type Gateway struct {
+	i                           component.Initializer
+	logger                      logger.Logger
 	Mux                         *runtime.ServeMux
 	Middleware                  Middleware
 	HTTPServiceHandlerRegistrar HTTPServiceHandlerRegistrar
@@ -55,7 +57,7 @@ func NewGateway(opts ...Option) *Gateway {
 	g := &Gateway{
 		Middleware: gateway.Middleware,
 		MuxOptions: []runtime.ServeMuxOption{},
-		Config:     goconfig.NewEnvConfig(new(Config)).(*Config),
+		Config:     NewConfig(),
 		exit:       make(chan os.Signal),
 	}
 
@@ -69,6 +71,7 @@ func NewGateway(opts ...Option) *Gateway {
 		Handler: g.Middleware(g.Mux),
 	}
 
+	g.i = NewInitializer(g)
 	return g
 }
 
@@ -118,17 +121,6 @@ func (g *Gateway) GetMetadata(key string) interface{} {
 	return g.Metadata.Get(key)
 }
 
-// Run runs the HTTP server
-func (g *Gateway) Run(ctx context.Context) error {
-	log.Println("starting HTTP/REST gateway...")
-	return g.Server.ListenAndServe()
-}
-
-// ShutDown - gracefully stops the server
-func (g *Gateway) ShutDown(ctx context.Context) error {
-	return g.Server.Shutdown(ctx)
-}
-
 // String - Returns the type of the server
 func (g *Gateway) String() string {
 	return SERVER_TYPE
@@ -140,4 +132,12 @@ func (g *Gateway) AddRegistryTags(tags ...string) {
 		append(g.Config.GetTags(), tags...),
 		registry.TAGS_SEPARATOR,
 	)
+}
+
+func (g *Gateway) HasInitializer() bool {
+	return true
+}
+
+func (g *Gateway) Initializer() component.Initializer {
+	return g.i
 }

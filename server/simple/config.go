@@ -1,4 +1,4 @@
-package grpc
+package simple
 
 import (
 	"fmt"
@@ -10,9 +10,9 @@ import (
 
 // Config manages the HTTP server config
 type Config struct {
-	Host string `env:"GRPC_HOST,defaut="`
-	Port int    `env:"GRPC_PORT,default=9090"`
-	Tags string `env:"GRPC_CONSUL_TAGS,default="`
+	Host string `env:"SERVER_HOST,defaut="`
+	Port int    `env:"SERVER_PORT,default=8080"`
+	Tags string `env:"SERVER_CONSUL_TAGS,default="`
 }
 
 // NewConfig returns the parsed config for jetstream from env

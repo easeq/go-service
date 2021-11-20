@@ -1,4 +1,4 @@
-package broker
+package nsq
 
 import (
 	"context"
@@ -10,23 +10,23 @@ func TestPublish(t *testing.T) {
 		name    string
 		ctx     context.Context
 		topic   string
-		message Message
+		message []byte
 	}{
 		{
 			name:    "simpleString",
 			ctx:     context.TODO(),
 			topic:   "test-topic",
-			message: "test-message",
+			message: []byte("test-message"),
 		},
-		{
-			name:  "mapOfStringKV",
-			ctx:   context.TODO(),
-			topic: "test-interface-topic",
-			message: map[string]string{
-				"name":  "test-name",
-				"value": "test-value",
-			},
-		},
+		// {
+		// 	name:  "mapOfStringKV",
+		// 	ctx:   context.TODO(),
+		// 	topic: "test-interface-topic",
+		// 	message: map[string]interface{}{
+		// 		"name":  "test-name",
+		// 		"value": "test-value",
+		// 	},
+		// },
 	}
 
 	for _, tt := range tests {

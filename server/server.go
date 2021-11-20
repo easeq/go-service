@@ -1,7 +1,11 @@
 package server
 
 import (
-	"context"
+	"github.com/easeq/go-service/component"
+)
+
+const (
+	SERVER = "server"
 )
 
 // Metadata interface for getting the server related metadata
@@ -12,10 +16,7 @@ type Metadata interface {
 
 // Server interface for implementing custom servers
 type Server interface {
-	// // Registers the server with the service registry
-	// Register(context.Context, string, registry.ServiceRegistry) *registry.ErrRegistryRegFailed
-	// Runs the server
-	Run(context.Context) error
+	component.Component
 	// Host returns server host
 	Host() string
 	// Port returns server port
@@ -30,6 +31,4 @@ type Server interface {
 	AddRegistryTags(tags ...string)
 	// Get string identifier of the server
 	String() string
-	// Method to shut down server
-	ShutDown(ctx context.Context) error
 }

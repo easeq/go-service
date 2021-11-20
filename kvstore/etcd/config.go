@@ -4,10 +4,9 @@ import (
 	"strings"
 	"time"
 
-	goconfig "github.com/easeq/go-config"
-
 	// Manages env config
 	"github.com/Netflix/go-env"
+	"github.com/easeq/go-service/component"
 )
 
 // Config holds the etcd configuration
@@ -22,9 +21,12 @@ type Config struct {
 	Password string `env:"KVSTORE_ETCD_PASSWORD,omitempty"`
 }
 
-// NewConfig returns the env config for etcd client
+// NewConfig returns the parsed config for jetstream from env
 func NewConfig() *Config {
-	return goconfig.NewEnvConfig(new(Config)).(*Config)
+	c := new(Config)
+	component.NewConfig(c)
+
+	return c
 }
 
 // UnmarshalEnv env.EnvSet to Config

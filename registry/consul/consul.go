@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	goconfig "github.com/easeq/go-config"
-	"github.com/easeq/go-service/registry"
+	"github.com/easeq/go-service/component"
+	"github.com/easeq/go-service/logger"
 	"github.com/easeq/go-service/server"
 
 	"github.com/Netflix/go-env"
@@ -18,15 +18,11 @@ var (
 	ErrConsulConfigLoad = errors.New("error loading consul config")
 )
 
-// Config - consul configuration
-type Config struct {
-	Host string `env:"CONSUL_HOST,default=localhost"`
-	Port int    `env:"CONSUL_PORT,default=8500"`
-	TTL  int    `env:"CONSUL_TTL,default=15"`
-}
-
 // Consul registry
 type Consul struct {
+	i      component.Initializer
+	logger logger.Logger
+	server server.Server
 	*Config
 }
 
@@ -37,29 +33,33 @@ func (c *Config) UnmarshalEnv(es env.EnvSet) error {
 
 // NewConsul returns a new consul registry
 func NewConsul() *Consul {
-	return &Consul{
-		Config: goconfig.NewEnvConfig(new(Config)).(*Config),
-	}
+	c := &Consul{Config: NewConfig()}
+	c.i = NewInitializer(c)
+	return c
 }
 
-// Register registers service with the registry
+// Register registers service with the registry.
 func (c *Consul) Register(
 	ctx context.Context,
-	name string,
 	server server.Server,
-) *registry.ErrRegistryRegFailed {
+) error {
 	if err := consul.Register(
 		ctx,
-		name,
+		c.ServiceName,
 		server.Host(),
 		server.Port(),
 		c.Address(),
 		c.TTL,
 		server.RegistryTags()...,
 	); err != nil {
-		return &registry.ErrRegistryRegFailed{Value: err}
+		c.logger.Errorw(
+			"Service registration failed",
+			"error", err.Error(),
+		)
+		return err
 	}
 
+	c.logger.Infof("Successfully registered service: %s", c.ServiceName)
 	return nil
 }
 
@@ -81,4 +81,12 @@ func (c *Consul) Address() string {
 // ToString returns the string name of the service registry
 func (c *Consul) ToString() string {
 	return "consul"
+}
+
+func (c *Consul) HasInitializer() bool {
+	return true
+}
+
+func (c *Consul) Initializer() component.Initializer {
+	return c.i
 }
