@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/broker"
 	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/logger"
@@ -36,7 +35,7 @@ type JetStream struct {
 
 // NewJetStream returns a new instance of nats jetstream
 func NewJetStream(opts ...broker.Option) *JetStream {
-	config := goconfig.NewEnvConfig(new(Config)).(*Config)
+	config := NewConfig()
 	nc, err := nats.Connect(config.Address())
 	if err != nil {
 		panic("error connecting to nats server")

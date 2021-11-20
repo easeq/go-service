@@ -3,8 +3,7 @@ package redis
 import (
 	"time"
 
-	"github.com/Netflix/go-env"
-	goconfig "github.com/easeq/go-config"
+	"github.com/easeq/go-service/component"
 )
 
 // Config defines the redis config
@@ -32,12 +31,10 @@ type Config struct {
 	IdleCheckFrequency time.Duration `env:"REDIS_IDLE_CHEKC_FREQUENCY,default=60s"`
 }
 
-// NewConfig returns the env config for redis client
+// NewConfig returns the parsed config for zap from env
 func NewConfig() *Config {
-	return goconfig.NewEnvConfig(new(Config)).(*Config)
-}
+	c := new(Config)
+	component.NewConfig(c)
 
-// UnmarshalEnv env.EnvSet to Config
-func (c *Config) UnmarshalEnv(es env.EnvSet) error {
-	return env.Unmarshal(es, c)
+	return c
 }

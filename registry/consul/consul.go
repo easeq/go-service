@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/logger"
 	"github.com/easeq/go-service/server"
@@ -18,14 +17,6 @@ var (
 	// ErrConsulConfigLoad returned when env config for consul results in an error
 	ErrConsulConfigLoad = errors.New("error loading consul config")
 )
-
-// Config - consul configuration
-type Config struct {
-	ServiceName string `env:"SERVICE_NAME"`
-	Host        string `env:"CONSUL_HOST,default=localhost"`
-	Port        int    `env:"CONSUL_PORT,default=8500"`
-	TTL         int    `env:"CONSUL_TTL,default=15"`
-}
 
 // Consul registry
 type Consul struct {
@@ -42,10 +33,7 @@ func (c *Config) UnmarshalEnv(es env.EnvSet) error {
 
 // NewConsul returns a new consul registry
 func NewConsul() *Consul {
-	c := &Consul{
-		Config: goconfig.NewEnvConfig(new(Config)).(*Config),
-	}
-
+	c := &Consul{Config: NewConfig()}
 	c.i = NewInitializer(c)
 	return c
 }

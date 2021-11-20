@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 
-	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/broker"
 	"github.com/easeq/go-service/client"
 	"github.com/easeq/go-service/component"
@@ -24,7 +23,6 @@ import (
 type Service struct {
 	exit       chan os.Signal
 	components map[string]component.Component
-	*Config
 }
 
 // ServiceOption to pass as arg while creating new service
@@ -32,13 +30,7 @@ type ServiceOption func(*Service)
 
 // NewService creates a new service
 func NewService(opts ...ServiceOption) *Service {
-	cfg := new(Config)
-	if err := cfg.UnmarshalEnv(goconfig.EnvSet()); err != nil {
-		panic("Error loading env vars")
-	}
-
 	svc := &Service{
-		Config:     cfg,
 		components: make(map[string]component.Component),
 		exit:       make(chan os.Signal),
 	}
@@ -50,6 +42,10 @@ func NewService(opts ...ServiceOption) *Service {
 	}
 
 	return svc
+}
+
+func init() {
+
 }
 
 // WithServer passes the server

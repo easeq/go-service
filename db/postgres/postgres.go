@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 
-	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/logger"
 	"github.com/golang-migrate/migrate/v4"
@@ -50,8 +49,7 @@ func newConnection(uri string) *sql.DB {
 
 // NewPostgres returns new connection to the postgres db
 func NewPostgres() *Postgres {
-	cfg := GetConfig()
-
+	cfg := NewConfig()
 	pg := &Postgres{
 		Handle: newConnection(cfg.GetURI()),
 		Config: cfg,
@@ -59,11 +57,6 @@ func NewPostgres() *Postgres {
 
 	pg.i = NewInitializer(pg)
 	return pg
-}
-
-// GetConfig returns the DB config
-func GetConfig() *Config {
-	return goconfig.NewEnvConfig(new(Config)).(*Config)
 }
 
 // Migrate runs all remaining db migrations

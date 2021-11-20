@@ -43,7 +43,8 @@ type Etcd struct {
 }
 
 // NewEtcd returns a new instance of etcd with etcd client and config
-func NewEtcd(config *Config) *Etcd {
+func NewEtcd() *Etcd {
+	config := NewConfig()
 	client, err := clientv3.New(clientv3.Config{
 		Endpoints:   config.GetEndpoints(),
 		DialTimeout: config.DialTimeout,

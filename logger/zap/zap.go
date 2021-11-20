@@ -1,9 +1,9 @@
 package zap
 
 import (
-	goconfig "github.com/easeq/go-config"
+	"log"
+
 	"github.com/easeq/go-service/component"
-	"go.uber.org/zap"
 	uber_zap "go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -14,13 +14,21 @@ type Zap struct {
 }
 
 func NewZap() *Zap {
-	config := goconfig.NewEnvConfig(new(Config)).(*Config)
+	config := NewConfig()
+	log.Println("config", config)
 	core := zapcore.NewCore(
 		config.GetEncoder(),
 		config.GetLogWriter(),
 		config.AtomicLevel(),
 	)
-	logger := uber_zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
+	logger := uber_zap.New(
+		core,
+		uber_zap.AddCaller(),
+		uber_zap.AddCallerSkip(1),
+		uber_zap.Fields(
+			uber_zap.String("service", config.ServiceName),
+		),
+	)
 	sugaredLogger := logger.Sugar()
 
 	return &Zap{Config: config, Logger: sugaredLogger}

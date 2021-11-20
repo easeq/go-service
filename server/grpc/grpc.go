@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/logger"
 	"github.com/easeq/go-service/registry"
@@ -44,7 +43,7 @@ func NewGrpc(opts ...Option) *Grpc {
 	g := &Grpc{
 		DialOptions:   []grpc.DialOption{grpc.WithInsecure()},
 		ServerOptions: []grpc.ServerOption{},
-		Config:        goconfig.NewEnvConfig(new(Config)).(*Config),
+		Config:        NewConfig(),
 		exit:          make(chan os.Signal),
 	}
 

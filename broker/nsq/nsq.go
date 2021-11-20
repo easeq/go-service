@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 
-	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/broker"
 	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/logger"
@@ -31,7 +30,7 @@ type Nsq struct {
 
 // NewNsq returns a new instance of NSQ
 func NewNsq() *Nsq {
-	config := goconfig.NewEnvConfig(new(Config)).(*Config)
+	config := NewConfig()
 
 	producer, err := nsq.NewProducer(config.Producer.Address(), config.NSQConfig())
 	if err != nil {

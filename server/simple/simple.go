@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	goconfig "github.com/easeq/go-config"
 	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/logger"
 	"github.com/easeq/go-service/registry"
@@ -37,7 +36,7 @@ type Option func(*Simple)
 // NewGrpc creates a new gRPC server
 func NewSimple(opts ...Option) *Simple {
 	g := &Simple{
-		Config: goconfig.NewEnvConfig(new(Config)).(*Config),
+		Config: NewConfig(),
 		exit:   make(chan os.Signal),
 	}
 
