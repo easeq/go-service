@@ -15,7 +15,6 @@ type Zap struct {
 
 func NewZap() *Zap {
 	config := NewConfig()
-	log.Println("config", config)
 	core := zapcore.NewCore(
 		config.GetEncoder(),
 		config.GetLogWriter(),
