@@ -1,8 +1,6 @@
 package zap
 
 import (
-	"log"
-
 	"github.com/easeq/go-service/component"
 	uber_zap "go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
