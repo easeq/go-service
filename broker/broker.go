@@ -56,3 +56,7 @@ type Runner interface{}
 
 // RunOption to pass as arg while calling the run method for the broker
 type RunOption func(Runner)
+
+func LogError(l logger.Logger, msg string, topic string, err error) {
+	l.Errorw(msg, topic, err)
+}

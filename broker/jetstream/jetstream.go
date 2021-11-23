@@ -82,7 +82,7 @@ func (j *JetStream) Logger() logger.Logger {
 	return j.logger
 }
 
-// StreamExists returns whether a stream by the given name exists
+// StreamExists returns whether a stream by theErrorw given name exists
 func (j *JetStream) streamExists(name string) bool {
 	if _, err := j.jsCtx.StreamInfo(name); err != nil {
 		return false
@@ -110,7 +110,7 @@ func (j *JetStream) createStream(name string, subjects ...string) error {
 func (j *JetStream) Publish(ctx context.Context, topic string, message interface{}, opts ...broker.PublishOption) error {
 	payload, err := json.Marshal(message)
 	if err != nil {
-		j.logger.Errorf("JetStream publish payload error: %s", err)
+		broker.LogError(j.logger, "JetStream publish payload error", topic, err)
 		return err
 	}
 
@@ -121,14 +121,14 @@ func (j *JetStream) Publish(ctx context.Context, topic string, message interface
 		// Send the message with span over NATS
 		_, err = j.jsCtx.Publish(topic, t.Bytes())
 
-		j.logger.Errorf("JetStream publish error: %s", err)
+		broker.LogError(j.logger, "JetStream publish error", topic, err)
 		return err
 	})
 }
 
 // Subscribe subcribes for the given topic.
 func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.Handler, opts ...broker.SubscribeOption) error {
-	j.logger.Info("Subscribe message", topic)
+	j.logger.Infof("Subscribe message: %s", topic)
 	subscriber := NewSubscriber(j, topic, opts...)
 	natsHandler := func(m *nats.Msg) {
 		// Create new TraceMsg from normal NATS message.
@@ -137,7 +137,7 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 				Body:   body,
 				Extras: m,
 			}); err != nil {
-				j.logger.Errorf("JetStream subcribe handle error: %s", err)
+				broker.LogError(j.logger, "JetStream subcribe handle error", topic, err)
 				m.Nak()
 				return err
 			}
@@ -149,7 +149,7 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 
 	subscription, err := j.jsCtx.Subscribe(topic, natsHandler, subscriber.opts...)
 	if err != nil {
-		j.logger.Errorf("JetStream subcription error: %s", err)
+		broker.LogError(j.logger, "JetStream subcription error", topic, err)
 		return fmt.Errorf("JetStream subscription failed: %v", err)
 	}
 

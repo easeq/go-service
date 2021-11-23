@@ -57,6 +57,7 @@ func (n *Nsq) Logger() logger.Logger {
 func (n *Nsq) Publish(ctx context.Context, topic string, message interface{}, opts ...broker.PublishOption) error {
 	payload, err := json.Marshal(message)
 	if err != nil {
+		broker.LogError(n.logger, "NSQ unmarshalling message error", topic, err)
 		return err
 	}
 
@@ -65,7 +66,10 @@ func (n *Nsq) Publish(ctx context.Context, topic string, message interface{}, op
 		t.Write(payload)
 
 		// Send the message with span over NSQ
-		return n.Producer.Publish(topic, payload)
+		err := n.Producer.Publish(topic, payload)
+		broker.LogError(n.logger, "NSQ publish error", topic, err)
+
+		return err
 	})
 }
 
@@ -74,16 +78,19 @@ func (n *Nsq) Subscribe(ctx context.Context, topic string, handler broker.Handle
 	subscriber := NewNsqSubscriber(n, topic, opts...)
 	consumer, err := nsq.NewConsumer(topic, subscriber.channel, n.NSQConfig())
 	if err != nil {
+		broker.LogError(n.logger, "NSQ new consumer error", topic, err)
 		return err
 	}
 
 	nsqHandler := NewNsqHandler(n, topic, handler)
 	consumer.AddHandler(nsqHandler)
 	if err := consumer.ConnectToNSQD(n.Config.Producer.Address()); err != nil {
+		broker.LogError(n.logger, "NSQ consumer connect to NSQD error", topic, err)
 		return err
 	}
 
 	if err := consumer.ConnectToNSQLookupd(n.Config.Lookupd.Address()); err != nil {
+		broker.LogError(n.logger, "NSQ consumer connect to NSQLookupd error", topic, err)
 		return err
 	}
 
