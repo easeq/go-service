@@ -128,7 +128,7 @@ func (j *JetStream) Publish(ctx context.Context, topic string, message interface
 
 // Subscribe subcribes for the given topic.
 func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.Handler, opts ...broker.SubscribeOption) error {
-	j.logger.Infof("Subscribe message: %s", topic)
+	j.logger.Infof("Subscribe: %s", topic)
 	subscriber := NewSubscriber(j, topic, opts...)
 	natsHandler := func(m *nats.Msg) {
 		// Create new TraceMsg from normal NATS message.
@@ -154,7 +154,7 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 	}
 
 	j.Subscriptions[topic] = subscription
-
+	j.logger.Infof("Subscription created: %s", topic)
 	return nil
 }
 
