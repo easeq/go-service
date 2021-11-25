@@ -58,5 +58,5 @@ type Runner interface{}
 type RunOption func(Runner)
 
 func LogError(l logger.Logger, msg string, topic string, err error) {
-	l.Errorw(msg, topic, err)
+	l.Errorw(msg, "topic", topic, "error", err)
 }
