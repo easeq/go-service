@@ -10,6 +10,7 @@ import (
 	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/logger"
 	"github.com/easeq/go-service/tracer"
+	"github.com/easeq/go-service/utils"
 	nats "github.com/nats-io/nats.go"
 )
 
@@ -83,19 +84,26 @@ func (j *JetStream) Logger() logger.Logger {
 }
 
 // StreamExists returns whether a stream by theErrorw given name exists
-func (j *JetStream) streamExists(name string) bool {
-	if _, err := j.jsCtx.StreamInfo(name); err != nil {
-		return false
+func (j *JetStream) streamExists(name string) *nats.StreamInfo {
+	info, err := j.jsCtx.StreamInfo(name)
+	if err != nil {
+		return nil
 	}
 
-	return true
+	return info
 }
 
 // createStream creates a new JS stream if it doens't exist and
-// attaches the pre-defined subjects to the stream
+// attaches the provided subjects to the stream.
+// If the stream, the new subjects are appended to the stream
 func (j *JetStream) createStream(name string, subjects ...string) error {
-	if j.streamExists(name) {
-		return nil
+	if streamInfo := j.streamExists(name); streamInfo != nil {
+		newStreamCfg := streamInfo.Config
+		newStreamCfg.Subjects = utils.Unique(
+			append(newStreamCfg.Subjects, subjects...),
+		)
+		_, err := j.jsCtx.UpdateStream(&newStreamCfg)
+		return err
 	}
 
 	_, err := j.jsCtx.AddStream(&nats.StreamConfig{
