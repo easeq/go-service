@@ -11,7 +11,7 @@ import (
 	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/logger"
 	"github.com/easeq/go-service/registry"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 )
 
 var (

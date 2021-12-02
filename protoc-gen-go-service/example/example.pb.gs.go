@@ -59,7 +59,7 @@ func (sc *exampleServiceGSClient) NoReturn(ctx context.Context, in *Empty, opts 
 }
 
 func (sc *exampleServiceGSClient) ServerStream(ctx context.Context, in *Request, opts ...client.CallOption) (client.StreamClient, error) {
-	stream, err := sc.Stream(ctx, sc, &_ExampleService_serviceDesc.Streams[0], "/v1.ExampleService/ServerStream", in, opts...)
+	stream, err := sc.Stream(ctx, sc, &ExampleService_ServiceDesc.Streams[0], "/v1.ExampleService/ServerStream", in, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (sc *exampleServiceGSClient) ServerStream(ctx context.Context, in *Request,
 }
 
 func (sc *exampleServiceGSClient) ClientStream(ctx context.Context, in *Request, opts ...client.CallOption) (client.StreamClient, error) {
-	stream, err := sc.Stream(ctx, sc, &_ExampleService_serviceDesc.Streams[1], "/v1.ExampleService/ClientStream", in, opts...)
+	stream, err := sc.Stream(ctx, sc, &ExampleService_ServiceDesc.Streams[1], "/v1.ExampleService/ClientStream", in, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (sc *exampleServiceGSClient) ClientStream(ctx context.Context, in *Request,
 }
 
 func (sc *exampleServiceGSClient) BiDirectionalStream(ctx context.Context, in *Request, opts ...client.CallOption) (client.StreamClient, error) {
-	stream, err := sc.Stream(ctx, sc, &_ExampleService_serviceDesc.Streams[2], "/v1.ExampleService/BiDirectionalStream", in, opts...)
+	stream, err := sc.Stream(ctx, sc, &ExampleService_ServiceDesc.Streams[2], "/v1.ExampleService/BiDirectionalStream", in, opts...)
 	if err != nil {
 		return nil, err
 	}
