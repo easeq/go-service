@@ -68,7 +68,7 @@ func (sc *{{$serviceNameCamel}}GSClient) {{$methodName}}(ctx context.Context, in
 }
 {{else}}
 func (sc *{{$serviceNameCamel}}GSClient) {{$methodName}}(ctx context.Context, in *{{$inputName}}, opts ...client.CallOption) (client.StreamClient, error) {
-	stream, err := sc.Stream(ctx, sc, &_{{$serviceName}}_serviceDesc.Streams[{{index $streams (printf "%s%s" .Parent.GoName .GoName)}}], "/{{$serviceFullName}}/{{$methodName}}", in, opts...)
+	stream, err := sc.Stream(ctx, sc, &{{$serviceName}}_ServiceDesc.Streams[{{index $streams (printf "%s%s" .Parent.GoName .GoName)}}], "/{{$serviceFullName}}/{{$methodName}}", in, opts...)
 	if err != nil {
 		return nil, err
 	}

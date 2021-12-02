@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"google.golang.org/protobuf/runtime/protoiface"
+	"google.golang.org/protobuf/proto"
 )
 
 // RedirectHandler gRPC metadata and redirect if redirection headers are set
-func RedirectHandler(ctx context.Context, w http.ResponseWriter, resp protoiface.MessageV1) error {
+func RedirectHandler(ctx context.Context, w http.ResponseWriter, resp proto.Message) error {
 	headers := w.Header()
 	if location, ok := headers["Grpc-Metadata-Location"]; ok {
 		w.Header().Set("Location", location[0])
