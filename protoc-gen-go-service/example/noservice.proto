@@ -3,7 +3,7 @@ package v1;
 
 option go_package = "./;example";
 
-import "google/protobuf/descriptor.proto";
+/* import "google/protobuf/descriptor.proto"; */
 
 message NoServiceMessage {
     repeated string role = 1;
