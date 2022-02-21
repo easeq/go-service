@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+// Run the below command if there have been any changes to this file
+// protoc --proto_path=. --go_out=. --go_opt=paths=source_relative  error.proto 
+
+package error;
+
+option go_package = "./;error";
+
+message ErrorDetail {
+  // code is the unique error instance identifier.
+  int32 code = 1;
+  // status
+  string status = 2;
+  // message describes the specific error occurrence.
+  string message = 3;
+  // public indicates the error can be displayed publically
+  bool public = 4;
+}
