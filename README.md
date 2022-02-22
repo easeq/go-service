@@ -8,15 +8,27 @@
 
 * [broker](./broker)
 
+* [broker/jetstream](./broker/jetstream)
+
+* [broker/nsq](./broker/nsq)
+
 * [client](./client)
 
 * [client/grpc](./client/grpc)
 
+* [component](./component)
+
 * [db](./db)
+
+* [db/postgres](./db/postgres)
 
 * [kvstore](./kvstore)
 
 * [kvstore/etcd](./kvstore/etcd)
+
+* [logger](./logger)
+
+* [logger/zap](./logger/zap)
 
 * [pool](./pool)
 
@@ -37,6 +49,14 @@
 * [server/gateway](./server/gateway)
 
 * [server/grpc](./server/grpc)
+
+* [server/grpc/error](./server/grpc/error)
+
+* [server/simple](./server/simple)
+
+* [tracer](./tracer)
+
+* [tracer/jaeger](./tracer/jaeger)
 
 * [utils](./utils)
 
