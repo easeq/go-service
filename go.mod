@@ -15,6 +15,7 @@ require (
 	github.com/nats-io/nats.go v1.13.1-0.20211018182449-f2416a8b1483
 	github.com/nsqio/go-nsq v1.0.8
 	github.com/opentracing/opentracing-go v1.2.0
+	github.com/stretchr/testify v1.7.0
 	github.com/uber/jaeger-client-go v2.27.0+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
 	go.etcd.io/etcd/client/v3 v3.5.0
