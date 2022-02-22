@@ -28,9 +28,7 @@ func createError(t *testing.T, id int, level int, errors ...error) error {
 	errType := WithCode(codes.Code(code))
 
 	var errList []error
-	for _, err := range errors {
-		errList = append(errList, err)
-	}
+	errList = append(errList, errors...)
 	err := errType(msg, errList...)
 
 	require := require.New(t)
