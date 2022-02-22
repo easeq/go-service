@@ -1,0 +1,78 @@
+package error
+
+import (
+	"fmt"
+	"log"
+	"math/rand"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+func createError(t *testing.T, errors ...error) (*status.Status, string) {
+	msg := fmt.Sprintf(
+		"Message ID: %d, timestamp: %v",
+		rand.Intn(100),
+		time.Now().UnixNano(),
+	)
+	invalidArg := WithCode(codes.InvalidArgument)
+
+	err := invalidArg(msg, errors...)
+	require.NotEmpty(t, err)
+
+	// require.Error(t, err)
+	// require.Equal(t, err.Error(), msg)
+
+	return err, msg
+}
+
+func TestWithCode(t *testing.T) {
+	require := require.New(t)
+
+	tests := []struct {
+		name  string
+		check func()
+	}{
+		{
+			name: "EmptyErrList",
+			check: func() {
+				createError(t)
+			},
+		},
+		{
+			name: "ErrListWithOneEntry",
+			check: func() {
+				oldErr, _ := createError(t)
+				err, msg := createError(t, oldErr)
+
+				st, _ := status.FromError(err)
+				log.Println(st.Details()...)
+				// log.Println(err)
+				require.Error(err)
+				require.Equal(err.Error(), msg)
+				// check details
+			},
+		},
+		// {
+		// 	name: "ErrListWithMultipleEntries",
+		// 	check: func() {
+		// 		oldErr, _ := createError(t)
+		// 		err, msg := createError(t, oldErr)
+		// 		require.Error(err)
+		// 		require.Equal(err.Error(), msg)
+		// 		// check details
+		// 	},
+		// },
+	}
+
+	for i := range tests {
+		tc := tests[i]
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			tc.check()
+		})
+	}
+}

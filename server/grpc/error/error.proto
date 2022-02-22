@@ -16,4 +16,6 @@ message ErrorDetail {
   string message = 3;
   // public indicates the error can be displayed publically
   bool public = 4;
+  // stack entries
+  repeated string stack_entries = 5;
 }

@@ -10,8 +10,8 @@ endif
 set shortmess=aoO
 argglobal
 %argdel
-$argadd .
-edit server/grpc/error/error.go
+$argadd ~/dev/go-service
+edit .gitignore
 let s:save_splitbelow = &splitbelow
 let s:save_splitright = &splitright
 set splitbelow splitright
@@ -31,7 +31,7 @@ set winwidth=1
 exe 'vert 1resize ' . ((&columns * 105 + 105) / 211)
 exe 'vert 2resize ' . ((&columns * 105 + 105) / 211)
 argglobal
-balt ~/go/pkg/mod/google.golang.org/grpc@v1.42.0/status/status.go
+balt server/grpc/error/error.go
 setlocal fdm=manual
 setlocal fde=0
 setlocal fmr={{{,}}}
@@ -42,11 +42,11 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 38 - ((37 * winheight(0) + 51) / 103)
+let s:l = 1 - ((0 * winheight(0) + 51) / 103)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 38
+keepjumps 1
 normal! 0
 wincmd w
 argglobal
@@ -54,7 +54,7 @@ if bufexists("server/grpc/error/error_test.go") | buffer server/grpc/error/error
 if &buftype ==# 'terminal'
   silent file server/grpc/error/error_test.go
 endif
-balt ~/go/pkg/mod/github.com/stretchr/testify@v1.7.0/require/require_forward.go
+balt ~/go/pkg/mod/github.com/stretchr/testify@v1.7.0/require/require.go
 setlocal fdm=manual
 setlocal fde=0
 setlocal fmr={{{,}}}
@@ -65,24 +65,28 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 51 - ((50 * winheight(0) + 51) / 103)
+let s:l = 154 - ((86 * winheight(0) + 51) / 103)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 51
-normal! 026|
+keepjumps 154
+normal! 0
 wincmd w
 exe 'vert 1resize ' . ((&columns * 105 + 105) / 211)
 exe 'vert 2resize ' . ((&columns * 105 + 105) / 211)
 tabnext 1
+badd +39 server/grpc/error/error.go
+badd +0 ~/dev/go-service
+badd +44 ~/go/pkg/mod/google.golang.org/grpc@v1.42.0/status/status.go
+badd +150 server/grpc/error/error_test.go
+badd +0 ~/go/pkg/mod/github.com/stretchr/testify@v1.7.0/require/require_forward.go
 badd +38 server/grpc/config.go
 badd +8 server/grpc/error/error.proto
-badd +9 server/grpc/error/error.go
 badd +105 ~/go/pkg/mod/google.golang.org/grpc@v1.42.0/internal/status/status.go
-badd +44 ~/go/pkg/mod/google.golang.org/grpc@v1.42.0/status/status.go
 badd +51 ~/go/pkg/mod/google.golang.org/genproto@v0.0.0-20200526211855-cb27e3aa2013/googleapis/rpc/status/status.pb.go
-badd +49 server/grpc/error/error_test.go
-badd +201 ~/go/pkg/mod/github.com/stretchr/testify@v1.7.0/require/require_forward.go
+badd +134 /snap/go/9028/src/builtin/builtin.go
+badd +389 ~/go/pkg/mod/github.com/stretchr/testify@v1.7.0/require/require.go
+badd +0 .gitignore
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0 && getbufvar(s:wipebuf, '&buftype') isnot# 'terminal'
   silent exe 'bwipe ' . s:wipebuf
 endif
