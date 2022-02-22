@@ -18,8 +18,8 @@ jobs:
       with:
         go-version: ^1.16
         
-    - name: golangci-lint
-      uses: golangci/golangci-lint-action@v2
+#    - name: golangci-lint
+#      uses: golangci/golangci-lint-action@v2
 
     - name: goreadme
       uses: posener/goreadme@v1.4.0
