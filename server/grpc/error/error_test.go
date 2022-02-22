@@ -16,7 +16,7 @@ func getRandom(min int, max int) int {
 	return rand.Intn(max-min+1) + min
 }
 
-func createError(t *testing.T, id int, level int, errors ...*status.Status) *status.Status {
+func createError(t *testing.T, id int, level int, errors ...error) error {
 	msg := fmt.Sprintf(
 		"Message ID: %d-%d, timestamp: %v",
 		level,
@@ -25,28 +25,32 @@ func createError(t *testing.T, id int, level int, errors ...*status.Status) *sta
 	)
 
 	code := getRandom(1, 16)
-	invalidArg := WithCode(codes.Code(code))
+	errType := WithCode(codes.Code(code))
 
 	var errList []error
 	for _, err := range errors {
-		errList = append(errList, err.Err())
+		errList = append(errList, err)
 	}
-	err := invalidArg(msg, errList...)
+	err := errType(msg, errList...)
 
 	require := require.New(t)
 	require.NotEmpty(err)
-	require.Equal(int(err.Code()), code)
-	require.Equal(err.Message(), msg)
-	require.Equal(len(err.Details()), len(errList))
+
+	st, _ := status.FromError(err)
+
+	require.Equal(int(st.Code()), code)
+	require.Equal(st.Message(), msg)
+	require.Equal(len(st.Details()), len(errList))
 
 	return err
 }
 
-func compareErrorDetails(t *testing.T, parent *status.Status, children ...*status.Status) {
-	parentDetails := parent.Details()
+func compareErrorDetails(t *testing.T, parent error, children ...error) {
+	parentSt, _ := status.FromError(parent)
+	parentDetails := parentSt.Details()
 	for i, child := range children {
 		parentDetail := parentDetails[i].(*ErrorDetail)
-		childAsDetail := FromStatusError(child.Err())
+		childAsDetail := FromStatusError(child)
 
 		require := require.New(t)
 		require.Equal(parentDetail.Code, childAsDetail.Code)
@@ -56,20 +60,20 @@ func compareErrorDetails(t *testing.T, parent *status.Status, children ...*statu
 	}
 }
 
-func generateErrors(t *testing.T, n int, subN int, level int) ([]*status.Status, [][]*status.Status) {
+func generateErrors(t *testing.T, n int, subN int, level int) ([]error, [][]error) {
 	if n == 0 {
 		n = getRandom(1, 10)
 	}
 
-	errList := make([]*status.Status, n)
-	subErrList := make([][]*status.Status, n)
+	errList := make([]error, n)
+	subErrList := make([][]error, n)
 	for i := 0; i < n; i++ {
 		if subN == -1 {
 			subN = getRandom(0, 10)
 		}
 
-		var errors []*status.Status
-		subErrList[i] = make([]*status.Status, subN)
+		var errors []error
+		subErrList[i] = make([]error, subN)
 
 		if subN > 0 {
 			errors, _ = generateErrors(t, subN, 0, level+1)
@@ -163,4 +167,82 @@ func TestWithCode(t *testing.T) {
 			tc.check()
 		})
 	}
+}
+
+func errorWithCode(t *testing.T, fn GrpcError, code codes.Code) {
+	require := require.New(t)
+
+	msg := fmt.Sprintf("%s message", code.String())
+	detail := fmt.Errorf("%s detail", code.String())
+	err := fn(msg, detail)
+
+	require.Error(err)
+
+	st := status.Convert(err)
+	require.Equal(st.Code(), code)
+	require.Equal(st.Message(), msg)
+}
+
+func TestAborted(t *testing.T) {
+	errorWithCode(t, Aborted, codes.Aborted)
+}
+
+func TestAlreadyExists(t *testing.T) {
+	errorWithCode(t, AlreadyExists, codes.AlreadyExists)
+}
+
+func TestCanceled(t *testing.T) {
+	errorWithCode(t, Canceled, codes.Canceled)
+}
+
+func TestDataLoss(t *testing.T) {
+	errorWithCode(t, DataLoss, codes.DataLoss)
+}
+
+func TestDeadlineExceeded(t *testing.T) {
+	errorWithCode(t, DeadlineExceeded, codes.DeadlineExceeded)
+}
+
+func TestFailedPrecondition(t *testing.T) {
+	errorWithCode(t, FailedPrecondition, codes.FailedPrecondition)
+}
+
+func TestInternal(t *testing.T) {
+	errorWithCode(t, Internal, codes.Internal)
+}
+
+func TestInvalidArgument(t *testing.T) {
+	errorWithCode(t, InvalidArgument, codes.InvalidArgument)
+}
+
+func TestNotFound(t *testing.T) {
+	errorWithCode(t, NotFound, codes.NotFound)
+}
+
+func TestOutOfRange(t *testing.T) {
+	errorWithCode(t, OutOfRange, codes.OutOfRange)
+}
+
+func TestPermissionDenied(t *testing.T) {
+	errorWithCode(t, PermissionDenied, codes.PermissionDenied)
+}
+
+func TestResourceExhausted(t *testing.T) {
+	errorWithCode(t, ResourceExhausted, codes.ResourceExhausted)
+}
+
+func TestUnavailable(t *testing.T) {
+	errorWithCode(t, Unavailable, codes.Unavailable)
+}
+
+func TestUnauthenticated(t *testing.T) {
+	errorWithCode(t, Unauthenticated, codes.Unauthenticated)
+}
+
+func TestUnimplemented(t *testing.T) {
+	errorWithCode(t, Unimplemented, codes.Unimplemented)
+}
+
+func TestUnknown(t *testing.T) {
+	errorWithCode(t, Unknown, codes.Unknown)
 }

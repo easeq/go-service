@@ -6,7 +6,7 @@ import (
 )
 
 // GrpcError returns a status error from the given message and list of errors
-type GrpcError func(msg string, errors ...error) *status.Status
+type GrpcError func(msg string, errors ...error) error
 
 var (
 	Aborted            = WithCode(codes.Aborted)
@@ -29,14 +29,14 @@ var (
 
 // WithCode returns a prepared function with the respective code
 func WithCode(code codes.Code) GrpcError {
-	return func(msg string, errors ...error) *status.Status {
+	return func(msg string, errors ...error) error {
 		st := status.New(code, msg)
 		for i := range errors {
 			errDetails := FromStatusError(errors[i])
 			st, _ = st.WithDetails(errDetails)
 		}
 
-		return st
+		return st.Err()
 	}
 }
 
