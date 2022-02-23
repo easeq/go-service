@@ -42,7 +42,10 @@ func WithCode(code codes.Code) GrpcError {
 
 // FromStatusError converts status error to ErrorDetail
 func FromStatusError(err error) *ErrorDetail {
-	st, _ := status.FromError(err)
+	st, ok := status.FromError(err)
+	if !ok {
+		return nil
+	}
 
 	var entries []string
 	for _, detail := range st.Details() {
