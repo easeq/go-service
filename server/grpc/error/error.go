@@ -32,7 +32,7 @@ func WithCode(code codes.Code) GrpcError {
 	return func(msg string, errors ...error) error {
 		st := status.New(code, msg)
 		for i := range errors {
-			errDetails := ConvertToStatusError(errors[i])
+			errDetails := Convert(errors[i])
 			st, _ = st.WithDetails(errDetails)
 		}
 
@@ -40,8 +40,8 @@ func WithCode(code codes.Code) GrpcError {
 	}
 }
 
-// ConvertToStatusError  status error to ErrorDetail
-func ConvertToStatusError(err error) *ErrorDetail {
+// Convert error to ErrorDetail
+func Convert(err error) *ErrorDetail {
 	st := status.Convert(err)
 
 	var entries []string

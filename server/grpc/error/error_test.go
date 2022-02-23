@@ -48,7 +48,7 @@ func compareErrorDetails(t *testing.T, parent error, children ...error) {
 	parentDetails := parentSt.Details()
 	for i, child := range children {
 		parentDetail := parentDetails[i].(*ErrorDetail)
-		childAsDetail := ConvertToStatusError(child)
+		childAsDetail := Convert(child)
 
 		require := require.New(t)
 		require.Equal(parentDetail.Code, childAsDetail.Code)
