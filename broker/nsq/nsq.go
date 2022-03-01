@@ -61,7 +61,7 @@ func (n *Nsq) Publish(ctx context.Context, topic string, message interface{}, op
 		return err
 	}
 
-	return n.t.Publish(topic, func(t *broker.TraceMsg) error {
+	return n.t.Publish(ctx, topic, func(t *broker.TraceMsg) error {
 		// Add the payload/original message
 		t.Write(payload)
 
@@ -82,6 +82,7 @@ func (n *Nsq) Subscribe(ctx context.Context, topic string, handler broker.Handle
 		return err
 	}
 
+	// TODO: add trace
 	nsqHandler := NewNsqHandler(n, topic, handler)
 	consumer.AddHandler(nsqHandler)
 	if err := consumer.ConnectToNSQD(n.Config.Producer.Address()); err != nil {

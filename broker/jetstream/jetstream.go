@@ -122,7 +122,7 @@ func (j *JetStream) Publish(ctx context.Context, topic string, message interface
 		return err
 	}
 
-	return j.t.Publish(topic, func(t *broker.TraceMsg) error {
+	return j.t.Publish(ctx, topic, func(t *broker.TraceMsg) error {
 		// Add the payload/original message
 		t.Write(payload)
 
@@ -140,7 +140,7 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 	subscriber := NewSubscriber(j, topic, opts...)
 	natsHandler := func(m *nats.Msg) {
 		// Create new TraceMsg from normal NATS message.
-		j.t.Subscribe(m.Subject, m.Data, func(body []byte) error {
+		j.t.Subscribe(ctx, m.Subject, m.Data, func(body []byte) error {
 			if err := handler.Handle(&broker.Message{
 				Body:   body,
 				Extras: m,
