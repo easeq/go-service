@@ -44,7 +44,7 @@ type Gateway struct {
 	i                           component.Initializer
 	logger                      logger.Logger
 	Mux                         *runtime.ServeMux
-	Middleware                  Middleware
+	Middleware                  []Middleware
 	HTTPServiceHandlerRegistrar HTTPServiceHandlerRegistrar
 	MuxOptions                  []runtime.ServeMuxOption
 	Server                      *http.Server
@@ -55,7 +55,7 @@ type Gateway struct {
 // NewGateway creates and returns gRPC-gateway
 func NewGateway(opts ...Option) *Gateway {
 	g := &Gateway{
-		Middleware: gateway.Middleware,
+		Middleware: []Middleware{gateway.Middleware},
 		MuxOptions: []runtime.ServeMuxOption{},
 		Config:     NewConfig(),
 		exit:       make(chan os.Signal),
@@ -68,11 +68,19 @@ func NewGateway(opts ...Option) *Gateway {
 	g.Mux = runtime.NewServeMux(g.MuxOptions...)
 	g.Server = &http.Server{
 		Addr:    g.Address(),
-		Handler: g.Middleware(g.Mux),
+		Handler: chainMiddleware(g.Mux, g.Middleware...),
 	}
 
 	g.i = NewInitializer(g)
 	return g
+}
+
+func chainMiddleware(f http.Handler, m ...Middleware) http.Handler {
+	if len(m) == 0 {
+		return f
+	}
+
+	return m[0](chainMiddleware(f, m[1:cap(m)]...))
 }
 
 // WithMuxOptions adds mux options
@@ -83,7 +91,7 @@ func WithMuxOptions(opts ...runtime.ServeMuxOption) Option {
 }
 
 // WithMiddleware adds middleware to the rest handler
-func WithMiddleware(middleware Middleware) Option {
+func WithMiddleware(middleware ...Middleware) Option {
 	return func(g *Gateway) {
 		g.Middleware = middleware
 	}
