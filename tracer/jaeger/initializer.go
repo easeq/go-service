@@ -50,5 +50,5 @@ func (i *Initializer) CanStop() bool {
 // Run start the service component
 func (i *Initializer) Stop(ctx context.Context) error {
 	i.j.logger.Infow("Stop Jaeger")
-	return i.j.closer.Close()
+	return nil // i.j.closer.Close()
 }
