@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
+	"errors"
 	"fmt"
 
 	"github.com/easeq/go-service/tracer"
@@ -49,11 +50,11 @@ func NewTraceMsgCarrier(topic string, data []byte) *TraceMsgCarrier {
 }
 
 func NewTraceMsgCarrierFromBytes(tmBytes []byte) *TraceMsgCarrier {
-	var data bytes.Buffer
-	dec := gob.NewDecoder(&data)
+	data := bytes.NewBuffer(tmBytes)
+	dec := gob.NewDecoder(data)
 
-	var tm *TraceMsgCarrier
-	if err := dec.Decode(&tm); err != nil {
+	tm := new(TraceMsgCarrier)
+	if err := dec.Decode(tm); err != nil {
 		return nil
 	}
 
@@ -89,7 +90,6 @@ func (tm *TraceMsgCarrier) Bytes() ([]byte, error) {
 
 func (t *Trace) Publish(ctx context.Context, topic string, payload []byte, publish func(*TraceMsgCarrier) error) error {
 	tm := NewTraceMsgCarrier(topic, payload)
-
 	if !trace.SpanFromContext(ctx).IsRecording() {
 		return publish(tm)
 	}
@@ -100,6 +100,7 @@ func (t *Trace) Publish(ctx context.Context, topic string, payload []byte, publi
 		trace.WithSpanKind(trace.SpanKindProducer),
 		trace.WithAttributes(t.attrs...),
 		trace.WithAttributes(
+			semconv.MessageTypeSent,
 			semconv.MessagingDestinationKindTopic,
 			semconv.MessagingDestinationKey.String(topic),
 		),
@@ -116,9 +117,8 @@ func (t *Trace) Publish(ctx context.Context, topic string, payload []byte, publi
 // TraceSubscribe starts a trace on message receive
 func (t *Trace) Subscribe(ctx context.Context, topic string, tmBytes []byte, subscribe func(*TraceMsgCarrier) error) error {
 	tm := NewTraceMsgCarrierFromBytes(tmBytes)
-
-	if !trace.SpanFromContext(ctx).IsRecording() {
-		return subscribe(tm)
+	if tm == nil {
+		return errors.New("payload empty")
 	}
 
 	ctx = t.propagator.Extract(ctx, tm)
@@ -127,6 +127,8 @@ func (t *Trace) Subscribe(ctx context.Context, topic string, tmBytes []byte, sub
 		trace.WithSpanKind(trace.SpanKindConsumer),
 		trace.WithAttributes(t.attrs...),
 		trace.WithAttributes(
+			semconv.MessageTypeReceived,
+			semconv.MessagingDestinationKindTopic,
 			semconv.MessageTypeKey.String(topic),
 		),
 	}
