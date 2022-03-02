@@ -118,7 +118,7 @@ func (j *JetStream) createStream(name string, subjects ...string) error {
 func (j *JetStream) Publish(ctx context.Context, topic string, message interface{}, opts ...broker.PublishOption) error {
 	payload, err := json.Marshal(message)
 	if err != nil {
-		return fmt.Errorf("[%s] payload conversion error: %v", j.String(), err)
+		return fmt.Errorf("[%s] marshalling error: %v", j.String(), err)
 	}
 
 	return j.t.Publish(ctx, topic, payload, func(t *broker.TraceMsgCarrier) error {
@@ -132,7 +132,8 @@ func (j *JetStream) Publish(ctx context.Context, topic string, message interface
 		if err != nil {
 			return fmt.Errorf("[%s] publish error: %v", j.String(), err)
 		}
-		return err
+
+		return nil
 	})
 }
 

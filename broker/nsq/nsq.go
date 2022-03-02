@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/easeq/go-service/broker"
 	"github.com/easeq/go-service/component"
@@ -57,19 +58,21 @@ func (n *Nsq) Logger() logger.Logger {
 func (n *Nsq) Publish(ctx context.Context, topic string, message interface{}, opts ...broker.PublishOption) error {
 	payload, err := json.Marshal(message)
 	if err != nil {
-		broker.LogError(n.logger, "NSQ unmarshalling message error", topic, err)
-		return err
+		return fmt.Errorf("[%s] marshalling error: %v", n.String(), err)
 	}
 
-	return n.t.Publish(ctx, topic, func(t *broker.TraceMsg) error {
-		// Add the payload/original message
-		t.Write(payload)
+	return n.t.Publish(ctx, topic, payload, func(t *broker.TraceMsgCarrier) error {
+		data, err := t.Bytes()
+		if err != nil {
+			return fmt.Errorf("[%s] payload conversion error: %v", n.String(), err)
+		}
 
 		// Send the message with span over NSQ
-		err := n.Producer.Publish(topic, payload)
-		broker.LogError(n.logger, "NSQ publish error", topic, err)
+		if err := n.Producer.Publish(t.Topic, data); err != nil {
+			return fmt.Errorf("[%s] trace message carrier error: %v", n.String(), err)
+		}
 
-		return err
+		return nil
 	})
 }
 
