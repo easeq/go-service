@@ -34,6 +34,8 @@ type Broker interface {
 	Subscribe(ctx context.Context, topic string, handler Handler, opts ...SubscribeOption) error
 	// Unsubscribe from a subject
 	Unsubscribe(topic string) error
+	// String returns the string name of the broker
+	String() string
 }
 
 // Option to pass as arg while creating new broker instance

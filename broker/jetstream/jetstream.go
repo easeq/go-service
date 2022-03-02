@@ -178,3 +178,7 @@ func (j *JetStream) HasInitializer() bool {
 func (j *JetStream) Initializer() component.Initializer {
 	return j.i
 }
+
+func (j *JetStream) String() string {
+	return "nats.jetstream"
+}

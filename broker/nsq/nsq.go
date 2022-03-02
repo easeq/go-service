@@ -112,3 +112,7 @@ func (n *Nsq) HasInitializer() bool {
 func (n *Nsq) Initializer() component.Initializer {
 	return n.i
 }
+
+func (n *Nsq) String() string {
+	return "nsq"
+}
