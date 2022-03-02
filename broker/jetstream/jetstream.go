@@ -118,18 +118,20 @@ func (j *JetStream) createStream(name string, subjects ...string) error {
 func (j *JetStream) Publish(ctx context.Context, topic string, message interface{}, opts ...broker.PublishOption) error {
 	payload, err := json.Marshal(message)
 	if err != nil {
-		broker.LogError(j.logger, "JetStream publish payload error", topic, err)
-		return err
+		return fmt.Errorf("[%s] payload conversion error: %v", j.String(), err)
 	}
 
-	return j.t.Publish(ctx, topic, func(t *broker.TraceMsg) error {
-		// Add the payload/original message
-		t.Write(payload)
+	return j.t.Publish(ctx, topic, payload, func(t *broker.TraceMsgCarrier) error {
+		data, err := t.Bytes()
+		if err != nil {
+			return fmt.Errorf("[%s] trace message carrier error: %v", j.String(), err)
+		}
 
 		// Send the message with span over NATS
-		_, err = j.jsCtx.Publish(topic, t.Bytes())
-
-		broker.LogError(j.logger, "JetStream publish error", topic, err)
+		_, err = j.jsCtx.Publish(t.Topic, data)
+		if err != nil {
+			return fmt.Errorf("[%s] publish error: %v", j.String(), err)
+		}
 		return err
 	})
 }
@@ -140,10 +142,10 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 	subscriber := NewSubscriber(j, topic, opts...)
 	natsHandler := func(m *nats.Msg) {
 		// Create new TraceMsg from normal NATS message.
-		j.t.Subscribe(ctx, m.Subject, m.Data, func(body []byte) error {
+		j.t.Subscribe(ctx, m.Subject, m.Data, func(t *broker.TraceMsgCarrier) error {
 			if err := handler.Handle(&broker.Message{
-				Body:   body,
-				Extras: m,
+				Body:   t.Message,
+				Extras: t,
 			}); err != nil {
 				broker.LogError(j.logger, "JetStream subcribe handle error", topic, err)
 				m.Nak()
