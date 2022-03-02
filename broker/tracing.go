@@ -72,7 +72,7 @@ func (t *Trace) Subscribe(ctx context.Context, topic string, dataWithSpanCtx []b
 	tm := NewTraceMsg(dataWithSpanCtx)
 
 	if !trace.SpanFromContext(ctx).IsRecording() {
-		return publish(&tm)
+		return subscribe(tm.Bytes())
 	}
 
 	opts := []trace.SpanStartOption{
