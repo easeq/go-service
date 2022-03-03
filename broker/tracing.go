@@ -1,15 +1,14 @@
 package broker
 
 import (
-	"bytes"
 	"context"
-	"encoding/gob"
 	"errors"
 	"fmt"
 
 	"github.com/easeq/go-service/tracer"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 	"go.opentelemetry.io/otel/trace"
@@ -35,59 +34,6 @@ func NewTrace(b Broker) *Trace {
 	}
 }
 
-type TraceMsgCarrier struct {
-	Topic   string
-	Message []byte
-	Headers map[string]string
-}
-
-func NewTraceMsgCarrier(topic string, data []byte) *TraceMsgCarrier {
-	return &TraceMsgCarrier{
-		Topic:   topic,
-		Message: data,
-		Headers: make(map[string]string),
-	}
-}
-
-func NewTraceMsgCarrierFromBytes(tmBytes []byte) *TraceMsgCarrier {
-	data := bytes.NewBuffer(tmBytes)
-	dec := gob.NewDecoder(data)
-
-	tm := new(TraceMsgCarrier)
-	if err := dec.Decode(tm); err != nil {
-		return nil
-	}
-
-	return tm
-}
-
-func (tm *TraceMsgCarrier) Get(key string) string {
-	return tm.Headers[key]
-}
-
-func (tm *TraceMsgCarrier) Set(key string, value string) {
-	tm.Headers[key] = value
-}
-
-func (tm *TraceMsgCarrier) Keys() []string {
-	keys := make([]string, 0, len(tm.Headers))
-	for k := range tm.Headers {
-		keys = append(keys, k)
-	}
-
-	return keys
-}
-
-func (tm *TraceMsgCarrier) Bytes() ([]byte, error) {
-	var data bytes.Buffer
-	enc := gob.NewEncoder(&data)
-	if err := enc.Encode(tm); err != nil {
-		return nil, err
-	}
-
-	return data.Bytes(), nil
-}
-
 func (t *Trace) Publish(ctx context.Context, topic string, payload []byte, publish func(*TraceMsgCarrier) error) error {
 	tm := NewTraceMsgCarrier(topic, payload)
 	if !trace.SpanFromContext(ctx).IsRecording() {
@@ -111,7 +57,12 @@ func (t *Trace) Publish(ctx context.Context, topic string, payload []byte, publi
 	t.propagator.Inject(ctx, tm)
 	defer span.End()
 
-	return publish(tm)
+	err := publish(tm)
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+	}
+
+	return err
 }
 
 // TraceSubscribe starts a trace on message receive
@@ -137,5 +88,10 @@ func (t *Trace) Subscribe(ctx context.Context, topic string, tmBytes []byte, sub
 	_, span := t.tracer.Start(ctx, opName, opts...)
 	defer span.End()
 
-	return subscribe(tm)
+	err := subscribe(tm)
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+	}
+
+	return err
 }
