@@ -85,8 +85,7 @@ func (n *Nsq) Subscribe(ctx context.Context, topic string, handler broker.Handle
 		return err
 	}
 
-	// TODO: add trace
-	nsqHandler := NewNsqHandler(n, topic, handler)
+	nsqHandler := NewNsqHandler(ctx, n, topic, handler)
 	consumer.AddHandler(nsqHandler)
 	if err := consumer.ConnectToNSQD(n.Config.Producer.Address()); err != nil {
 		broker.LogError(n.logger, "NSQ consumer connect to NSQD error", topic, err)
