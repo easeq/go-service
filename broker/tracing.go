@@ -86,7 +86,7 @@ func (t *Trace) Subscribe(ctx context.Context, topic string, tmBytes []byte, sub
 	}
 
 	opName := fmt.Sprintf("%s.subscribe %s", t.b.String(), topic)
-	_, span := t.tracer.Start(ctx, opName, opts...)
+	ctx, span := t.tracer.Start(ctx, opName, opts...)
 	defer span.End()
 
 	t.propagator.Inject(ctx, tm)
