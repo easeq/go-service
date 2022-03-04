@@ -146,10 +146,9 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 			ctx context.Context,
 			t *broker.TraceMsgCarrier,
 		) error {
-			if err := handler.Handle(&broker.Message{
+			if err := handler.Handle(ctx, &broker.Message{
 				Body:   t.Message,
 				Extras: t,
-				Ctx:    ctx,
 			}); err != nil {
 				m.Nak()
 				return fmt.Errorf("subscribe handle error: %v", err)
