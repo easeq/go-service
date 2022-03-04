@@ -58,18 +58,18 @@ func (n *Nsq) Logger() logger.Logger {
 func (n *Nsq) Publish(ctx context.Context, topic string, message interface{}, opts ...broker.PublishOption) error {
 	payload, err := json.Marshal(message)
 	if err != nil {
-		return fmt.Errorf("[%s] marshalling error: %v", n.String(), err)
+		return fmt.Errorf("marshalling error: %v", err)
 	}
 
 	return n.t.Publish(ctx, topic, payload, func(t *broker.TraceMsgCarrier) error {
 		data, err := t.Bytes()
 		if err != nil {
-			return fmt.Errorf("[%s] payload conversion error: %v", n.String(), err)
+			return fmt.Errorf("payload conversion error: %v", err)
 		}
 
 		// Send the message with span over NSQ
 		if err := n.Producer.Publish(t.Topic, data); err != nil {
-			return fmt.Errorf("[%s] trace message carrier error: %v", n.String(), err)
+			return fmt.Errorf("trace message carrier error: %v", err)
 		}
 
 		return nil
@@ -81,20 +81,17 @@ func (n *Nsq) Subscribe(ctx context.Context, topic string, handler broker.Handle
 	subscriber := NewNsqSubscriber(n, topic, opts...)
 	consumer, err := nsq.NewConsumer(topic, subscriber.channel, n.NSQConfig())
 	if err != nil {
-		broker.LogError(n.logger, "NSQ new consumer error", topic, err)
-		return err
+		return fmt.Errorf("new consumer error: %v", err)
 	}
 
 	nsqHandler := NewNsqHandler(ctx, n, topic, handler)
 	consumer.AddHandler(nsqHandler)
 	if err := consumer.ConnectToNSQD(n.Config.Producer.Address()); err != nil {
-		broker.LogError(n.logger, "NSQ consumer connect to NSQD error", topic, err)
-		return err
+		return fmt.Errorf("consumer NSQD connection error: %v", err)
 	}
 
 	if err := consumer.ConnectToNSQLookupd(n.Config.Lookupd.Address()); err != nil {
-		broker.LogError(n.logger, "NSQ consumer connect to NSQLookupd error", topic, err)
-		return err
+		return fmt.Errorf("consumer NSQLookupd connection error: %v", err)
 	}
 
 	n.Consumers[topic] = consumer

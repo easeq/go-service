@@ -118,19 +118,19 @@ func (j *JetStream) createStream(name string, subjects ...string) error {
 func (j *JetStream) Publish(ctx context.Context, topic string, message interface{}, opts ...broker.PublishOption) error {
 	payload, err := json.Marshal(message)
 	if err != nil {
-		return fmt.Errorf("[%s] marshalling error: %v", j.String(), err)
+		return fmt.Errorf("marshalling error: %v", err)
 	}
 
 	return j.t.Publish(ctx, topic, payload, func(t *broker.TraceMsgCarrier) error {
 		data, err := t.Bytes()
 		if err != nil {
-			return fmt.Errorf("[%s] trace message carrier error: %v", j.String(), err)
+			return fmt.Errorf("trace message carrier error: %v", err)
 		}
 
 		// Send the message with span over NATS
 		_, err = j.jsCtx.Publish(t.Topic, data)
 		if err != nil {
-			return fmt.Errorf("[%s] publish error: %v", j.String(), err)
+			return fmt.Errorf("publish error: %v", err)
 		}
 
 		return nil
@@ -142,14 +142,17 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 	subscriber := NewSubscriber(j, topic, opts...)
 	natsHandler := func(m *nats.Msg) {
 		// Create new TraceMsg from normal NATS message.
-		j.t.Subscribe(ctx, m.Subject, m.Data, func(t *broker.TraceMsgCarrier) error {
+		j.t.Subscribe(ctx, m.Subject, m.Data, func(
+			ctx context.Context,
+			t *broker.TraceMsgCarrier,
+		) error {
 			if err := handler.Handle(&broker.Message{
 				Body:   t.Message,
 				Extras: t,
+				Ctx:    ctx,
 			}); err != nil {
-				broker.LogError(j.logger, "JetStream subcribe handle error", topic, err)
 				m.Nak()
-				return err
+				return fmt.Errorf("subscribe handle error: %v", err)
 			}
 
 			m.Ack()
@@ -159,12 +162,10 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 
 	subscription, err := j.jsCtx.Subscribe(topic, natsHandler, subscriber.opts...)
 	if err != nil {
-		broker.LogError(j.logger, "JetStream subcription error", topic, err)
-		return fmt.Errorf("JetStream subscription failed: %v", err)
+		return fmt.Errorf("subscription error: %v", err)
 	}
 
 	j.Subscriptions[topic] = subscription
-	j.logger.Infof("Subscription created: %s", topic)
 	return nil
 }
 

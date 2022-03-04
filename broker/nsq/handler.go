@@ -25,10 +25,11 @@ func (h *nsqHandler) HandleMessage(message *nsq.Message) error {
 		h.ctx,
 		h.topic,
 		message.Body,
-		func(t *broker.TraceMsgCarrier) error {
+		func(ctx context.Context, t *broker.TraceMsgCarrier) error {
 			if err := h.handler.Handle(&broker.Message{
 				Body:   t.Message,
 				Extras: t,
+				Ctx:    ctx,
 			}); err != nil {
 				return err
 			}

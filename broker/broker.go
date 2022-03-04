@@ -13,6 +13,7 @@ const (
 
 // Message structure
 type Message struct {
+	Ctx    context.Context
 	Body   []byte
 	Extras interface{}
 }

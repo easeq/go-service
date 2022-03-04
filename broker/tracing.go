@@ -67,7 +67,7 @@ func (t *Trace) Publish(ctx context.Context, topic string, payload []byte, publi
 }
 
 // TraceSubscribe starts a trace on message receive
-func (t *Trace) Subscribe(ctx context.Context, topic string, tmBytes []byte, subscribe func(*TraceMsgCarrier) error) error {
+func (t *Trace) Subscribe(ctx context.Context, topic string, tmBytes []byte, subscribe func(context.Context, *TraceMsgCarrier) error) error {
 	tm := NewTraceMsgCarrierFromBytes(tmBytes)
 	if tm == nil {
 		return errors.New("payload empty")
@@ -91,7 +91,7 @@ func (t *Trace) Subscribe(ctx context.Context, topic string, tmBytes []byte, sub
 
 	t.propagator.Inject(ctx, tm)
 
-	err := subscribe(tm)
+	err := subscribe(ctx, tm)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 	}
