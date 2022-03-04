@@ -13,7 +13,6 @@ const (
 
 // Message structure
 type Message struct {
-	Ctx    context.Context
 	Body   []byte
 	Extras interface{}
 }
@@ -21,7 +20,7 @@ type Message struct {
 // Handler used by the subscriber
 type Handler interface {
 	// Handles the subscribed message
-	Handle(m *Message) error
+	Handle(ctx context.Context, m *Message) error
 }
 
 // Broker interface for adding new brokers
