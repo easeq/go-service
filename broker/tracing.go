@@ -54,8 +54,9 @@ func (t *Trace) Publish(ctx context.Context, topic string, payload []byte, publi
 
 	opName := fmt.Sprintf("%s.publish %s", t.b.String(), topic)
 	ctx, span := t.tracer.Start(ctx, opName, opts...)
-	t.propagator.Inject(ctx, tm)
 	defer span.End()
+
+	t.propagator.Inject(ctx, tm)
 
 	err := publish(tm)
 	if err != nil {
@@ -87,6 +88,8 @@ func (t *Trace) Subscribe(ctx context.Context, topic string, tmBytes []byte, sub
 	opName := fmt.Sprintf("%s.subscribe %s", t.b.String(), topic)
 	_, span := t.tracer.Start(ctx, opName, opts...)
 	defer span.End()
+
+	t.propagator.Inject(ctx, tm)
 
 	err := subscribe(tm)
 	if err != nil {
