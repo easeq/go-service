@@ -150,8 +150,18 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 				Body:   t.Message,
 				Extras: t,
 			}); err != nil {
-				m.Nak()
-				return fmt.Errorf("subscribe handle error: %v", err)
+				var bErr *broker.BrokerStatus
+				if errors.As(err, &bErr) {
+					if bErr.Code == broker.ERR {
+						m.Nak()
+					} else {
+						m.Ack()
+					}
+				} else {
+					m.Nak()
+				}
+
+				return err
 			}
 
 			m.Ack()

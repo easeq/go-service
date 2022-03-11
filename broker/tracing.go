@@ -91,10 +91,31 @@ func (t *Trace) Subscribe(ctx context.Context, topic string, tmBytes []byte, sub
 
 	t.propagator.Inject(ctx, tm)
 
-	err := subscribe(ctx, tm)
-	if err != nil {
-		span.SetStatus(codes.Error, err.Error())
+	if err := subscribe(ctx, tm); err != nil {
+		var bErr *BrokerStatus
+		if errors.As(err, &bErr) {
+			switch bErr.Code {
+			case ERR:
+				span.SetStatus(codes.Error, bErr.Error())
+			case OK:
+				span.SetStatus(codes.Ok, bErr.Error())
+			case WARN:
+				span.SetAttributes(
+					attribute.String("goservice.broker.status", "WARN"),
+					attribute.String("goservice.broker.message", bErr.Error()),
+				)
+			case UNKNOWN:
+				span.SetAttributes(
+					attribute.String("goservice.broker.status", "UNKNOWN"),
+					attribute.String("goservice.broker.message", bErr.Error()),
+				)
+			}
+		} else {
+			span.SetStatus(codes.Error, err.Error())
+		}
+
+		return err
 	}
 
-	return err
+	return nil
 }
