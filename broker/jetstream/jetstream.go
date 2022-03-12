@@ -24,7 +24,7 @@ var (
 // Nsq holds our broker instance
 type JetStream struct {
 	i             component.Initializer
-	t             *broker.Trace
+	w             *broker.Wrapper
 	nc            *nats.Conn
 	logger        logger.Logger
 	tracer        tracer.Tracer
@@ -60,7 +60,7 @@ func NewJetStream(opts ...broker.Option) *JetStream {
 		opt(j)
 	}
 
-	j.t = broker.NewTrace(j)
+	j.w = broker.NewWrapper(j)
 	j.i = NewInitializer(j)
 
 	return j
@@ -121,7 +121,7 @@ func (j *JetStream) Publish(ctx context.Context, topic string, message interface
 		return fmt.Errorf("marshalling error: %v", err)
 	}
 
-	return j.t.Publish(ctx, topic, payload, func(t *broker.TraceMsgCarrier) error {
+	return j.w.Publish(ctx, topic, payload, func(t *broker.TraceMsgCarrier) error {
 		data, err := t.Bytes()
 		if err != nil {
 			return fmt.Errorf("trace message carrier error: %v", err)
@@ -142,7 +142,7 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 	subscriber := NewSubscriber(j, topic, opts...)
 	natsHandler := func(m *nats.Msg) {
 		// Create new TraceMsg from normal NATS message.
-		j.t.Subscribe(ctx, m.Subject, m.Data, func(
+		j.w.Subscribe(ctx, m.Subject, m.Data, func(
 			ctx context.Context,
 			t *broker.TraceMsgCarrier,
 		) error {

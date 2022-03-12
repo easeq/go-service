@@ -2,7 +2,6 @@ package broker
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/easeq/go-service/tracer"
@@ -34,8 +33,8 @@ func NewTrace(b Broker) *Trace {
 	}
 }
 
-func (t *Trace) Publish(ctx context.Context, topic string, payload []byte, publish func(*TraceMsgCarrier) error) error {
-	tm := NewTraceMsgCarrier(topic, payload)
+// Publish adds tracer details to the message
+func (t *Trace) Publish(ctx context.Context, tm *TraceMsgCarrier, publish PublishCallback) error {
 	if !trace.SpanFromContext(ctx).IsRecording() {
 		return publish(tm)
 	}
@@ -48,11 +47,11 @@ func (t *Trace) Publish(ctx context.Context, topic string, payload []byte, publi
 		trace.WithAttributes(
 			semconv.MessageTypeSent,
 			semconv.MessagingDestinationKindTopic,
-			semconv.MessagingDestinationKey.String(topic),
+			semconv.MessagingDestinationKey.String(tm.Topic),
 		),
 	}
 
-	opName := fmt.Sprintf("%s.publish %s", t.b.String(), topic)
+	opName := fmt.Sprintf("%s.publish %s", t.b.String(), tm.Topic)
 	ctx, span := t.tracer.Start(ctx, opName, opts...)
 	defer span.End()
 
@@ -66,13 +65,8 @@ func (t *Trace) Publish(ctx context.Context, topic string, payload []byte, publi
 	return err
 }
 
-// TraceSubscribe starts a trace on message receive
-func (t *Trace) Subscribe(ctx context.Context, topic string, tmBytes []byte, subscribe func(context.Context, *TraceMsgCarrier) error) error {
-	tm := NewTraceMsgCarrierFromBytes(tmBytes)
-	if tm == nil {
-		return errors.New("payload empty")
-	}
-
+// Subscribe adds the tracer details to the context
+func (t *Trace) Subscribe(ctx context.Context, tm *TraceMsgCarrier, subscribe SubscribeCallback) error {
 	ctx = t.propagator.Extract(ctx, tm)
 
 	opts := []trace.SpanStartOption{
@@ -81,11 +75,11 @@ func (t *Trace) Subscribe(ctx context.Context, topic string, tmBytes []byte, sub
 		trace.WithAttributes(
 			semconv.MessageTypeReceived,
 			semconv.MessagingDestinationKindTopic,
-			semconv.MessageTypeKey.String(topic),
+			semconv.MessageTypeKey.String(tm.Topic),
 		),
 	}
 
-	opName := fmt.Sprintf("%s.subscribe %s", t.b.String(), topic)
+	opName := fmt.Sprintf("%s.subscribe %s", t.b.String(), tm.Topic)
 	ctx, span := t.tracer.Start(ctx, opName, opts...)
 	defer span.End()
 
