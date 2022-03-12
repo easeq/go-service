@@ -35,27 +35,11 @@ func NewTrace(b Broker) *Trace {
 
 // Publish adds tracer details to the message
 func (t *Trace) Publish(ctx context.Context, tm *TraceMsgCarrier, publish PublishCallback) error {
-	if !trace.SpanFromContext(ctx).IsRecording() {
-		return publish(tm)
-	}
-
-	ctx = t.propagator.Extract(ctx, tm)
-
-	opts := []trace.SpanStartOption{
-		trace.WithSpanKind(trace.SpanKindProducer),
-		trace.WithAttributes(t.attrs...),
-		trace.WithAttributes(
-			semconv.MessageTypeSent,
-			semconv.MessagingDestinationKindTopic,
-			semconv.MessagingDestinationKey.String(tm.Topic),
-		),
-	}
-
 	opName := fmt.Sprintf("%s.publish %s", t.b.String(), tm.Topic)
-	ctx, span := t.tracer.Start(ctx, opName, opts...)
+	ctx, span := t.start(ctx, tm, opName, trace.SpanKindProducer, []attribute.KeyValue{
+		semconv.MessageTypeSent,
+	})
 	defer span.End()
-
-	t.propagator.Inject(ctx, tm)
 
 	err := publish(tm)
 	if err != nil {
@@ -67,23 +51,11 @@ func (t *Trace) Publish(ctx context.Context, tm *TraceMsgCarrier, publish Publis
 
 // Subscribe adds the tracer details to the context
 func (t *Trace) Subscribe(ctx context.Context, tm *TraceMsgCarrier, subscribe SubscribeCallback) error {
-	ctx = t.propagator.Extract(ctx, tm)
-
-	opts := []trace.SpanStartOption{
-		trace.WithSpanKind(trace.SpanKindConsumer),
-		trace.WithAttributes(t.attrs...),
-		trace.WithAttributes(
-			semconv.MessageTypeReceived,
-			semconv.MessagingDestinationKindTopic,
-			semconv.MessageTypeKey.String(tm.Topic),
-		),
-	}
-
 	opName := fmt.Sprintf("%s.subscribe %s", t.b.String(), tm.Topic)
-	ctx, span := t.tracer.Start(ctx, opName, opts...)
+	ctx, span := t.start(ctx, tm, opName, trace.SpanKindConsumer, []attribute.KeyValue{
+		semconv.MessageTypeReceived,
+	})
 	defer span.End()
-
-	t.propagator.Inject(ctx, tm)
 
 	err := subscribe(ctx, tm)
 	if err != nil {
@@ -91,4 +63,29 @@ func (t *Trace) Subscribe(ctx context.Context, tm *TraceMsgCarrier, subscribe Su
 	}
 
 	return err
+}
+
+func (t *Trace) start(
+	ctx context.Context,
+	tm *TraceMsgCarrier,
+	opName string,
+	kind trace.SpanKind,
+	attrs []attribute.KeyValue,
+) (context.Context, trace.Span) {
+	ctx = t.propagator.Extract(ctx, tm)
+
+	opts := []trace.SpanStartOption{
+		trace.WithSpanKind(kind),
+		trace.WithAttributes(t.attrs...),
+		trace.WithAttributes(attrs...),
+		trace.WithAttributes(
+			semconv.MessagingDestinationKindTopic,
+			semconv.MessageTypeKey.String(tm.Topic),
+		),
+	}
+
+	ctx, span := t.tracer.Start(ctx, opName, opts...)
+	t.propagator.Inject(ctx, tm)
+
+	return ctx, span
 }
