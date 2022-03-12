@@ -33,81 +33,58 @@ func NewTrace(s KVStore) *Trace {
 	}
 }
 
-func (t *Trace) Put(
-	ctx context.Context,
-	record *Record,
-	put PutCallback,
-	putOpts ...SetOpt,
-) (*Record, error) {
+func (t *Trace) start(ctx context.Context, op string, key string) (context.Context, trace.Span) {
 	if !trace.SpanFromContext(ctx).IsRecording() {
-		return put(ctx, record, putOpts...)
+		return ctx, nil
 	}
 
 	opts := []trace.SpanStartOption{
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(t.attrs...),
 		trace.WithAttributes(
-			semconv.DBOperationKey.String("PUT"),
+			semconv.DBOperationKey.String(op),
 		),
 	}
 
-	opName := fmt.Sprintf("%s.PUT", t.s.String())
-	ctx, span := t.tracer.Start(ctx, opName, opts...)
+	opName := fmt.Sprintf("%s.%s", t.s.String(), op)
+	if key == "" {
+		opName = fmt.Sprintf("%s.%s", opName, key)
+	}
+
+	return t.tracer.Start(ctx, opName, opts...)
+}
+
+func (t *Trace) Put(ctx context.Context, record *Record, put PutCallback, opts ...SetOpt) (*Record, error) {
+	ctx, span := t.start(ctx, "PUT", "")
+	if span == nil {
+		return put(ctx, record, opts...)
+	}
 	defer span.End()
 
-	record, err := put(ctx, record, putOpts...)
+	record, err := put(ctx, record, opts...)
 	t.setSpanError(span, err)
 
 	return record, err
 }
 
-func (t *Trace) Get(
-	ctx context.Context,
-	key string,
-	get GetCallback,
-	getOpts ...GetOpt,
-) ([]*Record, error) {
-	if !trace.SpanFromContext(ctx).IsRecording() {
-		return get(ctx, key, getOpts...)
+func (t *Trace) Get(ctx context.Context, key string, get GetCallback, opts ...GetOpt) ([]*Record, error) {
+	ctx, span := t.start(ctx, "GET", key)
+	if span == nil {
+		return get(ctx, key, opts...)
 	}
-
-	opts := []trace.SpanStartOption{
-		trace.WithSpanKind(trace.SpanKindClient),
-		trace.WithAttributes(t.attrs...),
-		trace.WithAttributes(
-			semconv.DBOperationKey.String("GET"),
-		),
-	}
-
-	opName := fmt.Sprintf("%s.GET.%s", t.s.String(), key)
-	ctx, span := t.tracer.Start(ctx, opName, opts...)
 	defer span.End()
 
-	records, err := get(ctx, key, getOpts...)
+	records, err := get(ctx, key, opts...)
 	t.setSpanError(span, err)
 
 	return records, err
 }
 
-func (t *Trace) Delete(
-	ctx context.Context,
-	key string,
-	delete DeleteCallback,
-) error {
-	if !trace.SpanFromContext(ctx).IsRecording() {
+func (t *Trace) Delete(ctx context.Context, key string, delete DeleteCallback) error {
+	ctx, span := t.start(ctx, "DELETE", key)
+	if span == nil {
 		return delete(ctx, key)
 	}
-
-	opts := []trace.SpanStartOption{
-		trace.WithSpanKind(trace.SpanKindClient),
-		trace.WithAttributes(t.attrs...),
-		trace.WithAttributes(
-			semconv.DBOperationKey.String("DELETE"),
-		),
-	}
-
-	opName := fmt.Sprintf("%s.DELETE.%s", t.s.String(), key)
-	ctx, span := t.tracer.Start(ctx, opName, opts...)
 	defer span.End()
 
 	err := delete(ctx, key)
@@ -116,25 +93,11 @@ func (t *Trace) Delete(
 	return err
 }
 
-func (t *Trace) Txn(
-	ctx context.Context,
-	handler TxnHandler,
-	txn TxnCallback,
-) error {
-	if !trace.SpanFromContext(ctx).IsRecording() {
+func (t *Trace) Txn(ctx context.Context, handler TxnHandler, txn TxnCallback) error {
+	ctx, span := t.start(ctx, "TXN", "")
+	if span == nil {
 		return txn(ctx, handler)
 	}
-
-	opts := []trace.SpanStartOption{
-		trace.WithSpanKind(trace.SpanKindClient),
-		trace.WithAttributes(t.attrs...),
-		trace.WithAttributes(
-			semconv.DBOperationKey.String("TXN"),
-		),
-	}
-
-	opName := fmt.Sprintf("%s.TXN", t.s.String())
-	ctx, span := t.tracer.Start(ctx, opName, opts...)
 	defer span.End()
 
 	err := txn(ctx, handler)
@@ -143,26 +106,11 @@ func (t *Trace) Txn(
 	return err
 }
 
-func (t *Trace) Subscribe(
-	ctx context.Context,
-	key string,
-	handler SubscribeHandler,
-	subscribe SubscribeCallback,
-) error {
-	if !trace.SpanFromContext(ctx).IsRecording() {
+func (t *Trace) Subscribe(ctx context.Context, key string, handler SubscribeHandler, subscribe SubscribeCallback) error {
+	ctx, span := t.start(ctx, "SUBSCRIBE", "")
+	if span == nil {
 		return subscribe(ctx, key, handler)
 	}
-
-	opts := []trace.SpanStartOption{
-		trace.WithSpanKind(trace.SpanKindConsumer),
-		trace.WithAttributes(t.attrs...),
-		trace.WithAttributes(
-			semconv.DBOperationKey.String("SUBSCRIBE"),
-		),
-	}
-
-	opName := fmt.Sprintf("%s.SUBSCRIBE.%s", t.s.String(), key)
-	ctx, span := t.tracer.Start(ctx, opName, opts...)
 	defer span.End()
 
 	err := subscribe(ctx, key, handler)
