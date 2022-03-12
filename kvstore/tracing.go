@@ -43,9 +43,6 @@ func (t *Trace) Put(
 		return put(ctx, record, putOpts...)
 	}
 
-	var tm propagation.TextMapCarrier
-	ctx = t.propagator.Extract(ctx, tm)
-
 	opts := []trace.SpanStartOption{
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(t.attrs...),
@@ -56,6 +53,7 @@ func (t *Trace) Put(
 
 	opName := fmt.Sprintf("%s.PUT", t.s.String())
 	ctx, span := t.tracer.Start(ctx, opName, opts...)
+	defer span.End()
 
 	record, err := put(ctx, record, putOpts...)
 	t.setSpanError(span, err)
@@ -73,9 +71,6 @@ func (t *Trace) Get(
 		return get(ctx, key, getOpts...)
 	}
 
-	var tm propagation.TextMapCarrier
-	ctx = t.propagator.Extract(ctx, tm)
-
 	opts := []trace.SpanStartOption{
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(t.attrs...),
@@ -86,6 +81,7 @@ func (t *Trace) Get(
 
 	opName := fmt.Sprintf("%s.GET.%s", t.s.String(), key)
 	ctx, span := t.tracer.Start(ctx, opName, opts...)
+	defer span.End()
 
 	records, err := get(ctx, key, getOpts...)
 	t.setSpanError(span, err)
@@ -102,9 +98,6 @@ func (t *Trace) Delete(
 		return delete(ctx, key)
 	}
 
-	var tm propagation.TextMapCarrier
-	ctx = t.propagator.Extract(ctx, tm)
-
 	opts := []trace.SpanStartOption{
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(t.attrs...),
@@ -115,6 +108,7 @@ func (t *Trace) Delete(
 
 	opName := fmt.Sprintf("%s.DELETE.%s", t.s.String(), key)
 	ctx, span := t.tracer.Start(ctx, opName, opts...)
+	defer span.End()
 
 	err := delete(ctx, key)
 	t.setSpanError(span, err)
@@ -131,9 +125,6 @@ func (t *Trace) Txn(
 		return txn(ctx, handler)
 	}
 
-	var tm propagation.TextMapCarrier
-	ctx = t.propagator.Extract(ctx, tm)
-
 	opts := []trace.SpanStartOption{
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(t.attrs...),
@@ -144,6 +135,7 @@ func (t *Trace) Txn(
 
 	opName := fmt.Sprintf("%s.TXN", t.s.String())
 	ctx, span := t.tracer.Start(ctx, opName, opts...)
+	defer span.End()
 
 	err := txn(ctx, handler)
 	t.setSpanError(span, err)
@@ -161,9 +153,6 @@ func (t *Trace) Subscribe(
 		return subscribe(ctx, key, handler)
 	}
 
-	var tm propagation.TextMapCarrier
-	ctx = t.propagator.Extract(ctx, tm)
-
 	opts := []trace.SpanStartOption{
 		trace.WithSpanKind(trace.SpanKindConsumer),
 		trace.WithAttributes(t.attrs...),
@@ -174,6 +163,7 @@ func (t *Trace) Subscribe(
 
 	opName := fmt.Sprintf("%s.SUBSCRIBE.%s", t.s.String(), key)
 	ctx, span := t.tracer.Start(ctx, opName, opts...)
+	defer span.End()
 
 	err := subscribe(ctx, key, handler)
 	t.setSpanError(span, err)
