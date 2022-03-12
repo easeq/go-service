@@ -1,84 +1,91 @@
 package broker
 
 import (
-	"bytes"
+	"context"
 	"fmt"
 
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
+	"github.com/easeq/go-service/tracer"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/propagation"
+	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Trace struct {
-	b Broker
+	b          Broker
+	tracer     trace.Tracer
+	attrs      []attribute.KeyValue
+	propagator propagation.TextMapPropagator
 }
 
 func NewTrace(b Broker) *Trace {
-	return &Trace{b}
-}
-
-// TraceMsg is used to trace the message using an opentracing
-type TraceMsg struct {
-	bytes.Buffer
-}
-
-// Prepare a trace message with the broker sent bytes
-func NewTraceMsg(data []byte) *TraceMsg {
-	b := bytes.NewBuffer(data)
-	return &TraceMsg{*b}
-}
-
-// TracePublish starts a trace on message publish
-func (t *Trace) Publish(topic string, publish func(*TraceMsg) error) error {
-	var tm TraceMsg
-
-	operationName := fmt.Sprintf("Publish message (%s)", topic)
-	span := opentracing.StartSpan(operationName, ext.SpanKindProducer)
-	if span != nil {
-		defer span.Finish()
-
-		ext.MessageBusDestination.Set(span, topic)
-		if err := opentracing.GlobalTracer().Inject(
-			span.Context(),
-			opentracing.Binary,
-			&tm,
-		); err != nil {
-			t.b.Logger().Debugw(
-				"ERROR: Injecting tracer",
-
-				"error", err,
-			)
-			return err
-		}
+	return &Trace{
+		b: b,
+		tracer: otel.GetTracerProvider().Tracer(
+			tracer.DEFAULT_TRACER_NAME,
+		),
+		attrs: []attribute.KeyValue{
+			semconv.MessagingSystemKey.String(b.String()),
+		},
+		propagator: otel.GetTextMapPropagator(),
 	}
-
-	return publish(&tm)
 }
 
-// TraceSubscribe starts a trace on message receive
-func (t *Trace) Subscribe(topic string, dataWithSpanCtx []byte, subscribe func([]byte) error) error {
-	tm := NewTraceMsg(dataWithSpanCtx)
+// Publish adds tracer details to the message
+func (t *Trace) Publish(ctx context.Context, tm *TraceMsgCarrier, publish PublishCallback) error {
+	opName := fmt.Sprintf("%s.publish %s", t.b.String(), tm.Topic)
+	ctx, span := t.start(ctx, tm, opName, trace.SpanKindProducer, []attribute.KeyValue{
+		semconv.MessageTypeSent,
+	})
+	defer span.End()
 
-	// Extract the span context.
-	sc, err := opentracing.GlobalTracer().Extract(opentracing.Binary, tm)
+	err := publish(tm)
 	if err != nil {
-		t.b.Logger().Debugw(
-			"ERROR: Extracting span from tracer",
-
-			"error", err,
-		)
-		return err
+		span.SetStatus(codes.Error, err.Error())
 	}
 
-	operationName := fmt.Sprintf("Receive message (%s)", topic)
-	span := opentracing.StartSpan(
-		operationName,
-		ext.SpanKindConsumer,
-		opentracing.FollowsFrom(sc),
-	)
-	if span != nil {
-		defer span.Finish()
-		ext.MessageBusDestination.Set(span, topic)
+	return err
+}
+
+// Subscribe adds the tracer details to the context
+func (t *Trace) Subscribe(ctx context.Context, tm *TraceMsgCarrier, subscribe SubscribeCallback) error {
+	opName := fmt.Sprintf("%s.subscribe %s", t.b.String(), tm.Topic)
+	ctx, span := t.start(ctx, tm, opName, trace.SpanKindConsumer, []attribute.KeyValue{
+		semconv.MessageTypeReceived,
+	})
+	defer span.End()
+
+	err := subscribe(ctx, tm)
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 	}
 
-	return subscribe(tm.Bytes())
+	return err
+}
+
+func (t *Trace) start(
+	ctx context.Context,
+	tm *TraceMsgCarrier,
+	opName string,
+	kind trace.SpanKind,
+	attrs []attribute.KeyValue,
+) (context.Context, trace.Span) {
+	ctx = t.propagator.Extract(ctx, tm)
+
+	opts := []trace.SpanStartOption{
+		trace.WithSpanKind(kind),
+		trace.WithAttributes(t.attrs...),
+		trace.WithAttributes(attrs...),
+		trace.WithAttributes(
+			semconv.MessagingDestinationKindTopic,
+			semconv.MessageTypeKey.String(tm.Topic),
+		),
+	}
+
+	ctx, span := t.tracer.Start(ctx, opName, opts...)
+	t.propagator.Inject(ctx, tm)
+
+	return ctx, span
 }

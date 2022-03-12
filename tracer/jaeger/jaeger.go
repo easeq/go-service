@@ -1,42 +1,71 @@
 package jaeger
 
 import (
-	"fmt"
-	"io"
+	"context"
+	"log"
 
+	"github.com/Netflix/go-env"
 	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/logger"
-	"github.com/opentracing/opentracing-go"
-	jaegercfg "github.com/uber/jaeger-client-go/config"
-	jaegerlog "github.com/uber/jaeger-client-go/log"
-	"github.com/uber/jaeger-lib/metrics"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
+
+type Config struct {
+	Endpoint string `env:"JAEGER_ENDPOINT"`
+}
+
+// NewConfig returns the parsed config for jaeger from env
+func NewConfig() *Config {
+	c := new(Config)
+	component.NewConfig(c)
+
+	return c
+}
+
+// UnmarshalEnv env.EnvSet to Config
+func (c *Config) UnmarshalEnv(es env.EnvSet) error {
+	return env.Unmarshal(es, c)
+}
 
 type Jaeger struct {
 	i      component.Initializer
 	logger logger.Logger
-	tracer opentracing.Tracer
-	closer io.Closer
-	config *jaegercfg.Configuration
+	tracer *sdktrace.TracerProvider
 }
 
 func NewJaeger() *Jaeger {
-	config, err := jaegercfg.FromEnv()
-	if err != nil {
-		panic("error fetching jaeger config")
-	}
+	cfg := NewConfig()
 
-	tracer, closer, err := config.NewTracer(
-		jaegercfg.Logger(jaegerlog.StdLogger),
-		jaegercfg.Metrics(metrics.NullFactory),
+	jaegerExporter, err := jaeger.New(
+		jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(cfg.Endpoint)),
 	)
 	if err != nil {
-		panic(fmt.Errorf("jeaeger-err: %s", err))
+		log.Fatalln("Couldn't initialize jaeger", err)
 	}
 
-	opentracing.SetGlobalTracer(tracer)
+	resources, err := resource.New(
+		context.Background(),
+		resource.WithFromEnv(),
+		resource.WithProcess(),
+	)
+	if err != nil {
+		log.Fatalln("Couldn't initialize jaeger opentel resources")
+	}
 
-	j := &Jaeger{tracer: tracer, closer: closer, config: config}
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithSyncer(jaegerExporter),
+		sdktrace.WithResource(resources),
+	)
+
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+
+	j := &Jaeger{tracer: tp}
 	j.i = NewInitializer(j)
 	return j
 }

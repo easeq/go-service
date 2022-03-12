@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/easeq/go-service/logger"
+	"github.com/easeq/go-service/tracer"
 )
 
 type Initializer struct {
@@ -22,6 +23,8 @@ func (i *Initializer) AddDependency(dep interface{}) error {
 	switch v := dep.(type) {
 	case logger.Logger:
 		i.e.logger = v
+	case tracer.Tracer:
+		i.e.tracer = v
 	}
 
 	return nil

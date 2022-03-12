@@ -20,7 +20,7 @@ type Message struct {
 // Handler used by the subscriber
 type Handler interface {
 	// Handles the subscribed message
-	Handle(m *Message) error
+	Handle(ctx context.Context, m *Message) error
 }
 
 // Broker interface for adding new brokers
@@ -34,6 +34,8 @@ type Broker interface {
 	Subscribe(ctx context.Context, topic string, handler Handler, opts ...SubscribeOption) error
 	// Unsubscribe from a subject
 	Unsubscribe(topic string) error
+	// String returns the string name of the broker
+	String() string
 }
 
 // Option to pass as arg while creating new broker instance

@@ -24,7 +24,7 @@ var (
 // Nsq holds our broker instance
 type JetStream struct {
 	i             component.Initializer
-	t             *broker.Trace
+	w             *broker.Wrapper
 	nc            *nats.Conn
 	logger        logger.Logger
 	tracer        tracer.Tracer
@@ -60,7 +60,7 @@ func NewJetStream(opts ...broker.Option) *JetStream {
 		opt(j)
 	}
 
-	j.t = broker.NewTrace(j)
+	j.w = broker.NewWrapper(j)
 	j.i = NewInitializer(j)
 
 	return j
@@ -118,36 +118,40 @@ func (j *JetStream) createStream(name string, subjects ...string) error {
 func (j *JetStream) Publish(ctx context.Context, topic string, message interface{}, opts ...broker.PublishOption) error {
 	payload, err := json.Marshal(message)
 	if err != nil {
-		broker.LogError(j.logger, "JetStream publish payload error", topic, err)
-		return err
+		return fmt.Errorf("marshalling error: %v", err)
 	}
 
-	return j.t.Publish(topic, func(t *broker.TraceMsg) error {
-		// Add the payload/original message
-		t.Write(payload)
+	return j.w.Publish(ctx, topic, payload, func(t *broker.TraceMsgCarrier) error {
+		data, err := t.Bytes()
+		if err != nil {
+			return fmt.Errorf("trace message carrier error: %v", err)
+		}
 
 		// Send the message with span over NATS
-		_, err = j.jsCtx.Publish(topic, t.Bytes())
+		_, err = j.jsCtx.Publish(t.Topic, data)
+		if err != nil {
+			return fmt.Errorf("publish error: %v", err)
+		}
 
-		broker.LogError(j.logger, "JetStream publish error", topic, err)
-		return err
+		return nil
 	})
 }
 
 // Subscribe subcribes for the given topic.
 func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.Handler, opts ...broker.SubscribeOption) error {
-	j.logger.Infof("Subscribe: %s", topic)
 	subscriber := NewSubscriber(j, topic, opts...)
 	natsHandler := func(m *nats.Msg) {
 		// Create new TraceMsg from normal NATS message.
-		j.t.Subscribe(m.Subject, m.Data, func(body []byte) error {
-			if err := handler.Handle(&broker.Message{
-				Body:   body,
-				Extras: m,
+		j.w.Subscribe(ctx, m.Subject, m.Data, func(
+			ctx context.Context,
+			t *broker.TraceMsgCarrier,
+		) error {
+			if err := handler.Handle(ctx, &broker.Message{
+				Body:   t.Message,
+				Extras: t,
 			}); err != nil {
-				broker.LogError(j.logger, "JetStream subcribe handle error", topic, err)
 				m.Nak()
-				return err
+				return fmt.Errorf("subscribe handle error: %v", err)
 			}
 
 			m.Ack()
@@ -157,12 +161,10 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 
 	subscription, err := j.jsCtx.Subscribe(topic, natsHandler, subscriber.opts...)
 	if err != nil {
-		broker.LogError(j.logger, "JetStream subcription error", topic, err)
-		return fmt.Errorf("JetStream subscription failed: %v", err)
+		return fmt.Errorf("subscription error: %v", err)
 	}
 
 	j.Subscriptions[topic] = subscription
-	j.logger.Infof("Subscription created: %s", topic)
 	return nil
 }
 
@@ -177,4 +179,8 @@ func (j *JetStream) HasInitializer() bool {
 
 func (j *JetStream) Initializer() component.Initializer {
 	return j.i
+}
+
+func (j *JetStream) String() string {
+	return "nats.jetstream"
 }
