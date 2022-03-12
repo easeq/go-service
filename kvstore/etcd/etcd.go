@@ -170,7 +170,7 @@ func (e *Etcd) Put(ctx context.Context, record *kvstore.Record, opts ...kvstore.
 		return record, nil
 	}
 
-	return cb(ctx, record, opts...)
+	return e.wrapper.Put(ctx, record, cb, opts...)
 }
 
 // Get a record by it's key
@@ -204,7 +204,7 @@ func (e *Etcd) Get(ctx context.Context, key string, opts ...kvstore.GetOpt) ([]*
 		return records, nil
 	}
 
-	return cb(ctx, key, opts...)
+	return e.wrapper.Get(ctx, key, cb, opts...)
 }
 
 // Delete the key from the store
@@ -214,7 +214,7 @@ func (e *Etcd) Delete(ctx context.Context, key string) error {
 		return err
 	}
 
-	return cb(ctx, key)
+	return e.wrapper.Delete(ctx, key, cb)
 }
 
 // Txn handles store transactions
@@ -223,7 +223,7 @@ func (e *Etcd) Txn(ctx context.Context, handler kvstore.TxnHandler) error {
 		return handler.Handle(ctx, e)
 	}
 
-	return cb(ctx, handler)
+	return e.wrapper.Txn(ctx, handler, cb)
 }
 
 // Subscribe to the changes made to the given key
@@ -249,7 +249,7 @@ func (e *Etcd) Subscribe(ctx context.Context, key string, handler kvstore.Subscr
 		}
 	}
 
-	return cb(ctx, key, handler)
+	return e.wrapper.Subscribe(ctx, key, handler, cb)
 }
 
 // Unsubscribe from a subscription
