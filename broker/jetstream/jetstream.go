@@ -161,7 +161,7 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 
 	subscription, err := j.jsCtx.Subscribe(topic, natsHandler, subscriber.opts...)
 	if err != nil {
-		return fmt.Errorf("subscription error: %v", err)
+		return fmt.Errorf("subscription error[topic: %s]: %v", topic, err)
 	}
 
 	j.Subscriptions[topic] = subscription
