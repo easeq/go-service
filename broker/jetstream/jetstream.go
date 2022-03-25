@@ -151,21 +151,33 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 				Extras: t,
 			}); err != nil {
 				m.Nak()
+				j.nc.Publish(m.Reply, []byte(err.Error()))
 				return fmt.Errorf("subscribe handle error: %v", err)
 			}
 
 			m.Ack()
+			j.nc.Publish(m.Reply, []byte("done"))
 			return nil
 		})
 	}
 
 	subscription, err := j.jsCtx.Subscribe(topic, natsHandler, subscriber.opts...)
+
 	if err != nil {
 		return fmt.Errorf("subscription error: %v", err)
 	}
 
 	j.Subscriptions[topic] = subscription
 	return nil
+}
+
+func (j *JetStream) Request(ctx context.Context, topic string, message interface{}, opts ...broker.RequestOption) (interface{}, error) {
+	payload, err := json.Marshal(message)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling error: %v", err)
+	}
+
+	return j.nc.RequestWithContext(ctx, topic, payload)
 }
 
 // Ubsubscribe method is not applicable
