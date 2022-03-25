@@ -33,7 +33,7 @@ type Broker interface {
 	// Subscribe to a subject
 	Subscribe(ctx context.Context, topic string, handler Handler, opts ...SubscribeOption) error
 	// Request creates a respondable request
-	Request(ctx context.Context, topic string, reply string, handler Handler, opts ...RequestOption) (interface{}, error)
+	Request(ctx context.Context, topic string, message interface{}, opts ...RequestOption) (interface{}, error)
 	// Unsubscribe from a subject
 	Unsubscribe(topic string) error
 	// String returns the string name of the broker
