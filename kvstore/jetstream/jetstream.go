@@ -126,8 +126,6 @@ func (j *JetStream) Subscribe(ctx context.Context, key string, handler kvstore.S
 		if err != nil {
 			return fmt.Errorf("[jetstream] watch (%s) error: %v", key, err)
 		}
-		// cWatch := j.Client.Watch(ctx, key)
-		// j.logger.Infof("set WATCH on %s", key)
 
 		for {
 			watchResp, ok := <-watcher.Updates()
@@ -141,7 +139,7 @@ func (j *JetStream) Subscribe(ctx context.Context, key string, handler kvstore.S
 			}
 
 			if done {
-				return nil
+				return watcher.Stop()
 			}
 		}
 	}
