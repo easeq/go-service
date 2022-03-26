@@ -6,6 +6,7 @@ import (
 
 	"github.com/Netflix/go-env"
 	"github.com/easeq/go-service/component"
+	"github.com/nats-io/nats.go"
 )
 
 // Config holds the etcd configuration
@@ -13,6 +14,9 @@ type Config struct {
 	Host   string `env:"NATS_HOST,default=127.0.0.1"`
 	Port   string `env:"NATS_PORT,default=4222"`
 	Bucket string `env:"JETSTREAM_BUCKET,default="`
+	// 0 - filestorage (default)
+	// 1 - memory
+	BucketStorage nats.StorageType `env:"JETSTREAM_BUCKET_STORAGE,default=0"`
 }
 
 // NewConfig returns the parsed config for jetstream from env
