@@ -135,7 +135,7 @@ func (j *JetStream) Subscribe(ctx context.Context, key string, handler kvstore.S
 				return nil
 			}
 
-			done, err := handler.Handle(key, watchResp)
+			done, err := handler.Handle(key, watchResp, watcher)
 			if err != nil {
 				return err
 			}
