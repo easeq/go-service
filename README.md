@@ -26,6 +26,8 @@
 
 * [kvstore/etcd](./kvstore/etcd)
 
+* [kvstore/jetstream](./kvstore/jetstream)
+
 * [logger](./logger)
 
 * [logger/zap](./logger/zap)
