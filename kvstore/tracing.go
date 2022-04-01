@@ -119,6 +119,24 @@ func (t *Trace) Subscribe(ctx context.Context, key string, handler SubscribeHand
 	return err
 }
 
+func (t *Trace) HandlerHandle(
+	ctx context.Context,
+	key string,
+	handler SubscribeHandler,
+	args ...interface{},
+) error {
+	ctx, span := t.start(ctx, "SUBSCRIBE.Handler.Handle", "")
+	if span == nil {
+		return handler.Handle(ctx, key, args...)
+	}
+	defer span.End()
+
+	err := handler.Handle(ctx, key, args...)
+	t.setSpanError(span, err)
+
+	return err
+}
+
 func (t *Trace) setSpanError(span trace.Span, err error) {
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())

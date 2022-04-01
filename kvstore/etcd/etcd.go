@@ -254,7 +254,7 @@ func (e *Etcd) Subscribe(
 			for {
 				select {
 				case watchResp := <-cWatch:
-					handler.Handle(ctx, key, watchResp)
+					e.wrapper.HandlerHandle(ctx, key, handler, watchResp)
 				case <-ctx.Done():
 					e.Client.Watcher.Close()
 				default:

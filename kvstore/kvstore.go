@@ -26,7 +26,7 @@ type SubscribeOpt interface{}
 // SubscribeHandler for the subscribe action
 type SubscribeHandler interface {
 	// Handle the subscription for the given key
-	Handle(ctx context.Context, key string, args ...interface{}) (bool, error)
+	Handle(ctx context.Context, key string, args ...interface{}) error
 }
 
 // TxnHandler is the interface for handling transactions
