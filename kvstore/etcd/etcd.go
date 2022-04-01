@@ -250,21 +250,19 @@ func (e *Etcd) Subscribe(
 		cWatch := e.Client.Watch(ctx, key, etcdOpts...)
 		e.logger.Infof("set WATCH on %s", key)
 
-		for {
-			watchResp, ok := <-cWatch
-			if !ok {
-				return nil
+		go func() {
+			for {
+				select {
+				case watchResp := <-cWatch:
+					handler.Handle(key, watchResp)
+				case <-ctx.Done():
+					e.Client.Watcher.Close()
+				default:
+				}
 			}
+		}()
 
-			done, err := handler.Handle(key, watchResp)
-			if err != nil {
-				return err
-			}
-
-			if done {
-				return nil
-			}
-		}
+		return nil
 	}
 
 	return e.wrapper.Subscribe(ctx, key, handler, cb)
