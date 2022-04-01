@@ -20,6 +20,9 @@ type SetOpt interface{}
 // GetOpts are the additional options passed during the get opertation
 type GetOpt interface{}
 
+// SubscribeOpt are the additional options passed during the subscribe operation
+type SubscribeOpt interface{}
+
 // SubscribeHandler for the subscribe action
 type SubscribeHandler interface {
 	// Handle the subscription for the given key
@@ -46,7 +49,7 @@ type KVStore interface {
 	// Txn handles transactions
 	Txn(ctx context.Context, handler TxnHandler) error
 	// Subscribe to the changes made to the given key
-	Subscribe(ctx context.Context, key string, handler SubscribeHandler) error
+	Subscribe(ctx context.Context, key string, handler SubscribeHandler, opts ...SubscribeOpt) error
 	// Unsubscribe from a subscription
 	Unsubscribe(ctx context.Context, key string) error
 	// String returns the name of the store implementation

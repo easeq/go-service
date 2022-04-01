@@ -19,6 +19,9 @@ var (
 	ErrNoResults = errors.New("no results found for the given key")
 	// ErrCreatingEtcdClient returned when creating etcd clientv3 fails
 	ErrCreatingEtcdClient = errors.New("error creating kvstore etcd client")
+	// ErrInvalidWatchOption returned when the watch option sent to the
+	// subscribe function is invalid
+	ErrInvalidWatchOption = errors.New("invalid etcd watch option")
 )
 
 const (
@@ -227,9 +230,24 @@ func (e *Etcd) Txn(ctx context.Context, handler kvstore.TxnHandler) error {
 }
 
 // Subscribe to the changes made to the given key
-func (e *Etcd) Subscribe(ctx context.Context, key string, handler kvstore.SubscribeHandler) error {
+func (e *Etcd) Subscribe(
+	ctx context.Context,
+	key string,
+	handler kvstore.SubscribeHandler,
+	opts ...kvstore.SubscribeOpt,
+) error {
 	cb := func(ctx context.Context, key string, handler kvstore.SubscribeHandler) error {
-		cWatch := e.Client.Watch(ctx, key)
+		etcdOpts := []clientv3.OpOption{}
+		for _, opt := range opts {
+			etcdOpt, ok := opt.(clientv3.OpOption)
+			if !ok {
+				return ErrInvalidWatchOption
+			}
+
+			etcdOpts = append(etcdOpts, etcdOpt)
+		}
+
+		cWatch := e.Client.Watch(ctx, key, etcdOpts...)
 		e.logger.Infof("set WATCH on %s", key)
 
 		for {
