@@ -82,3 +82,16 @@ func (w *Wrapper) Subscribe(
 
 	return w.trace.Subscribe(ctx, key, handler, subscribe)
 }
+
+func (w *Wrapper) HandlerHandle(
+	ctx context.Context,
+	key string,
+	handler SubscribeHandler,
+	args ...interface{},
+) error {
+	if w.trace == nil {
+		return handler.Handle(ctx, key, args...)
+	}
+
+	return w.trace.HandlerHandle(ctx, key, handler, args...)
+}
