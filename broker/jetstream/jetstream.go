@@ -2,7 +2,6 @@ package jetstream
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -116,9 +115,9 @@ func (j *JetStream) createStream(name string, subjects ...string) error {
 
 // Publish publishes the topic message
 func (j *JetStream) Publish(ctx context.Context, topic string, message interface{}, opts ...broker.PublishOption) error {
-	payload, err := json.Marshal(message)
+	payload, err := broker.EncodeMessage(message)
 	if err != nil {
-		return fmt.Errorf("marshalling error: %v", err)
+		return err
 	}
 
 	return j.w.Publish(ctx, topic, payload, func(t *broker.TraceMsgCarrier) error {

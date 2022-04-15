@@ -1,7 +1,10 @@
 package broker
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
+	"fmt"
 
 	"github.com/easeq/go-service/component"
 	"github.com/easeq/go-service/logger"
@@ -61,4 +64,29 @@ type RunOption func(Runner)
 
 func LogError(l logger.Logger, msg string, topic string, err error) {
 	l.Errorw(msg, "topic", topic, "error", err)
+}
+
+// EncodeMessage encodes a broker message
+func EncodeMessage(msg interface{}) ([]byte, error) {
+	var payload bytes.Buffer
+	enc := gob.NewEncoder(&payload)
+
+	if err := enc.Encode(msg); err != nil {
+		return nil, fmt.Errorf("encoding error: %v", err)
+	}
+
+	return payload.Bytes(), nil
+}
+
+// DecodeMessage decodes a message in bytes to the given interface
+func DecodeMessage(encMsg []byte, v interface{}) error {
+	var payload bytes.Buffer
+	dec := gob.NewDecoder(&payload)
+	payload.Write(encMsg)
+
+	if err := dec.Decode(v); err != nil {
+		return fmt.Errorf("decode message error: %v", err)
+	}
+
+	return nil
 }
