@@ -92,6 +92,11 @@ func (r *Rest) String() string {
 	return SERVER_TYPE
 }
 
+// GetMetadata returns the metadata by key
+func (r *Rest) GetMetadata(key string) interface{} {
+	return nil
+}
+
 // AddRegistryTags - sets the registry tags for the server
 func (r *Rest) AddRegistryTags(tags ...string) {
 	r.Config.Tags = strings.Join(
