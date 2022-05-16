@@ -121,6 +121,7 @@ func (j *JetStream) Publish(ctx context.Context, topic string, message interface
 		return fmt.Errorf("marshalling error: %v", err)
 	}
 
+	publisher := NewPublisher(j, topic, opts...)
 	return j.w.Publish(ctx, topic, payload, func(t *broker.TraceMsgCarrier) error {
 		data, err := t.Bytes()
 		if err != nil {
@@ -128,7 +129,7 @@ func (j *JetStream) Publish(ctx context.Context, topic string, message interface
 		}
 
 		// Send the message with span over NATS
-		_, err = j.jsCtx.Publish(t.Topic, data)
+		_, err = j.jsCtx.Publish(t.Topic, data, publisher.opts...)
 		if err != nil {
 			return fmt.Errorf("publish error: %v", err)
 		}
