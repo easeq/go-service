@@ -14,7 +14,7 @@ const (
 // Message structure
 type Message struct {
 	Body   []byte
-	Extras interface{}
+	Extras map[string]interface{}
 }
 
 // Handler used by the subscriber

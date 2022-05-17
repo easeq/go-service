@@ -29,7 +29,6 @@ type JetStream struct {
 	logger        logger.Logger
 	tracer        tracer.Tracer
 	jsCtx         nats.JetStreamContext
-	Js            nats.JetStreamContext
 	Subscriptions map[string]*nats.Subscription
 	*Config
 }
@@ -51,7 +50,6 @@ func NewJetStream(opts ...broker.Option) *JetStream {
 		i:             nil,
 		nc:            nc,
 		jsCtx:         js,
-		Js:            js,
 		Config:        config,
 		Subscriptions: make(map[string]*nats.Subscription),
 	}
@@ -109,6 +107,10 @@ func (j *JetStream) createStream(name string, subjects ...string) error {
 	_, err := j.jsCtx.AddStream(&nats.StreamConfig{
 		Name:     name,
 		Subjects: subjects,
+		// Duplicates: 0 * time.Second,
+		Discard:   nats.DiscardOld,
+		Retention: nats.WorkQueuePolicy,
+		Replicas:  1,
 	})
 
 	return err
@@ -129,7 +131,7 @@ func (j *JetStream) Publish(ctx context.Context, topic string, message interface
 		}
 
 		// Send the message with span over NATS
-		_, err = j.jsCtx.Publish(t.Topic, data, publisher.opts...)
+		_, err = j.jsCtx.Publish(topic, data, publisher.opts...)
 		if err != nil {
 			return fmt.Errorf("publish error: %v", err)
 		}
@@ -148,8 +150,11 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 			t *broker.TraceMsgCarrier,
 		) error {
 			if err := handler.Handle(ctx, &broker.Message{
-				Body:   t.Message,
-				Extras: t,
+				Body: t.Message,
+				Extras: map[string]interface{}{
+					"trace_msg_carrier": t,
+					"msg":               m,
+				},
 			}); err != nil {
 				m.Nak()
 				return fmt.Errorf("subscribe handle error: %v", err)
@@ -160,7 +165,7 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 		})
 	}
 
-	subscription, err := j.jsCtx.Subscribe(topic, natsHandler, subscriber.opts...)
+	subscription, err := subscriber.Subscribe(natsHandler)
 	if err != nil {
 		return fmt.Errorf("subscription error[topic: %s]: %v", topic, err)
 	}
