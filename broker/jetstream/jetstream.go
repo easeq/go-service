@@ -152,8 +152,8 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 			if err := handler.Handle(ctx, &broker.Message{
 				Body: t.Message,
 				Extras: map[string]interface{}{
-					"trace_msg_carrier": t,
-					"msg":               m,
+					broker.KEY_TRACE_MSG_CARRIER: t,
+					broker.KEY_BROKER_MSG:        m,
 				},
 			}); err != nil {
 				m.Nak()
