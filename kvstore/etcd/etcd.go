@@ -22,6 +22,8 @@ var (
 	// ErrInvalidWatchOption returned when the watch option sent to the
 	// subscribe function is invalid
 	ErrInvalidWatchOption = errors.New("invalid etcd watch option")
+	// ErrInvalidGetOption returned when the get option provided is not valid
+	ErrInvalidGetOption = errors.New("invalid etcd GET() option")
 )
 
 const (
@@ -179,7 +181,17 @@ func (e *Etcd) Put(ctx context.Context, record *kvstore.Record, opts ...kvstore.
 // Get a record by it's key
 func (e *Etcd) Get(ctx context.Context, key string, opts ...kvstore.GetOpt) ([]*kvstore.Record, error) {
 	cb := func(ctx context.Context, key string, opts ...kvstore.GetOpt) ([]*kvstore.Record, error) {
-		response, err := e.Client.Get(ctx, key)
+		etcdOpts := []clientv3.OpOption{}
+		for _, opt := range opts {
+			etcdOpt, ok := opt.(clientv3.OpOption)
+			if !ok {
+				return nil, ErrInvalidGetOption
+			}
+
+			etcdOpts = append(etcdOpts, etcdOpt)
+		}
+
+		response, err := e.Client.Get(ctx, key, etcdOpts...)
 		if err != nil {
 			return nil, fmt.Errorf("Error fetching record for the given key: %v", err)
 		}

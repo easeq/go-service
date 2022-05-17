@@ -21,6 +21,7 @@ var (
 // Nsq holds our broker instance
 type Nsq struct {
 	i         component.Initializer
+	w         *broker.Wrapper
 	t         *broker.Trace
 	logger    logger.Logger
 	tracer    tracer.Tracer
@@ -44,7 +45,7 @@ func NewNsq() *Nsq {
 		Config:    config,
 	}
 
-	n.t = broker.NewTrace(n)
+	n.w = broker.NewWrapper(n)
 	n.i = NewInitializer(n)
 	return n
 }
@@ -61,7 +62,7 @@ func (n *Nsq) Publish(ctx context.Context, topic string, message interface{}, op
 		return fmt.Errorf("marshalling error: %v", err)
 	}
 
-	return n.t.Publish(ctx, topic, payload, func(t *broker.TraceMsgCarrier) error {
+	return n.w.Publish(ctx, topic, payload, func(t *broker.TraceMsgCarrier) error {
 		data, err := t.Bytes()
 		if err != nil {
 			return fmt.Errorf("payload conversion error: %v", err)

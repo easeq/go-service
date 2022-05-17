@@ -9,12 +9,15 @@ import (
 
 const (
 	BROKER = "broker"
+
+	KEY_TRACE_MSG_CARRIER = "trace_msg_carrier"
+	KEY_BROKER_MSG        = "msg"
 )
 
 // Message structure
 type Message struct {
 	Body   []byte
-	Extras interface{}
+	Extras map[string]interface{}
 }
 
 // Handler used by the subscriber
