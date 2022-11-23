@@ -1,7 +1,10 @@
 package zap
 
 import (
+	"os"
+
 	"github.com/easeq/go-service/component"
+	"go.uber.org/zap"
 	uber_zap "go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -13,11 +16,27 @@ type Zap struct {
 
 func NewZap() *Zap {
 	config := NewConfig()
-	core := zapcore.NewCore(
-		config.GetEncoder(),
-		config.GetLogWriter(),
-		config.AtomicLevel(),
+
+	// TODO: handle external logging
+	highPriority := zap.LevelEnablerFunc(func(l zapcore.Level) bool {
+		return l >= zapcore.ErrorLevel
+	})
+
+	lowPriority := zap.LevelEnablerFunc(func(l zapcore.Level) bool {
+		return l < zapcore.ErrorLevel
+	})
+
+	consoleErrors := zapcore.Lock(os.Stderr)
+
+	consoleEncoder := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
+	lumberjackEncoder := config.GetEncoder()
+
+	core := zapcore.NewTee(
+		zapcore.NewCore(consoleEncoder, consoleErrors, highPriority),
+		zapcore.NewCore(lumberjackEncoder, config.GetLogWriter(), highPriority),
+		zapcore.NewCore(lumberjackEncoder, config.GetLogWriter(), lowPriority),
 	)
+
 	logger := uber_zap.New(
 		core,
 		uber_zap.AddCaller(),
