@@ -39,7 +39,7 @@ func NewSubscriber(j *JetStream, topic string, opts ...broker.SubscribeOption) *
 		opts: []nats.SubOpt{
 			nats.MaxDeliver(3),
 			nats.ManualAck(),
-			nats.DeliverNew(),
+			nats.DeliverAll(),
 		},
 	}
 
