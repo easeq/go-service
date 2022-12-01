@@ -18,8 +18,12 @@ func NewZap() *Zap {
 	config := NewConfig()
 
 	// TODO: handle external logging
+	highPriorityLevel := zapcore.ErrorLevel
+	if config.Dev {
+		highPriorityLevel = zapcore.InfoLevel
+	}
 	highPriority := zap.LevelEnablerFunc(func(l zapcore.Level) bool {
-		return l >= zapcore.ErrorLevel
+		return l >= highPriorityLevel
 	})
 
 	lowPriority := zap.LevelEnablerFunc(func(l zapcore.Level) bool {

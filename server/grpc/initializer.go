@@ -44,6 +44,7 @@ func (i *Initializer) Run(ctx context.Context) error {
 	)
 	listener, err := net.Listen("tcp", i.g.Config.Address())
 	if err != nil {
+		i.g.logger.Errorw("tcp listen error", "err", err, "address", i.g.Config.Address())
 		return err
 	}
 
