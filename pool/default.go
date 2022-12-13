@@ -2,8 +2,9 @@ package pool
 
 import (
 	"errors"
-	"fmt"
 	"sync"
+
+	"github.com/easeq/go-service/logger"
 )
 
 var (
@@ -29,6 +30,7 @@ type ConnectionPool struct {
 	factory   Factory
 	CloseFunc CloseFunc
 	size      int
+	logger    logger.Logger
 	sync.RWMutex
 }
 
@@ -68,6 +70,13 @@ func WithFactory(factory Factory) Option {
 func WithCloseFunc(closeFunc CloseFunc) Option {
 	return func(p *ConnectionPool) {
 		p.CloseFunc = closeFunc
+	}
+}
+
+// WithLogger sets the logger for the pool
+func WithLogger(logger logger.Logger) Option {
+	return func(p *ConnectionPool) {
+		p.logger = logger
 	}
 }
 
@@ -118,13 +127,13 @@ func (p *ConnectionPool) Get(address string) (Connection, error) {
 	}
 
 	if conns == nil {
-		return nil, fmt.Errorf("%s", ErrConnectionClosed)
+		return nil, ErrConnectionClosed
 	}
 
 	select {
 	case conn := <-conns:
 		if conn == nil {
-			return nil, fmt.Errorf("%s", ErrConnectionClosed)
+			return nil, ErrConnectionClosed
 		}
 
 		return p.wrap(address, conn), nil

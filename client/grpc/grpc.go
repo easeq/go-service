@@ -60,13 +60,15 @@ func NewGrpc(opts ...ClientOption) *Grpc {
 		opt(c)
 	}
 
+	c.i = NewInitializer(c)
+
 	c.pool = pool.NewPool(
 		pool.WithFactory(c.factory),
 		pool.WithSize(10),
 		pool.WithCloseFunc(c.closeFunc),
+		pool.WithLogger(c.logger),
 	)
 
-	c.i = NewInitializer(c)
 	return c
 }
 
@@ -94,7 +96,23 @@ func WithCloseFunc(closeFunc pool.CloseFunc) ClientOption {
 // Dial creates/gets a connection from the pool using the address from the service registry
 func (c *Grpc) Dial(name string, opts ...client.DialOption) (pool.Connection, error) {
 	address := c.Registry.ConnectionString(name, defaultScheme)
+	c.logger.Debugf("dial: %s", address)
 	return c.pool.Get(address)
+}
+
+// Get client conn
+func (c *Grpc) GetConnFromPool(serviceName string) (pool.Connection, *grpc.ClientConn, error) {
+	pcc, err := c.Dial(serviceName)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cc, ok := pcc.Conn().(*grpc.ClientConn)
+	if !ok {
+		return nil, nil, fmt.Errorf("invalid factory client connection")
+	}
+
+	return nil, cc, nil
 }
 
 // Call gRPC method
@@ -106,17 +124,10 @@ func (c *Grpc) Call(
 	res interface{},
 	opts ...client.CallOption,
 ) error {
-	pcc, err := c.Dial(sc.GetServiceName())
+	_, cc, err := c.GetConnFromPool(sc.GetServiceName())
 	if err != nil {
+		c.logger.Errorf("conn error: %s", err)
 		return err
-	}
-
-	// Put the connection back or close connection
-	defer pcc.Close()
-
-	cc, ok := pcc.Conn().(*grpc.ClientConn)
-	if !ok {
-		return fmt.Errorf("invalid factory client connection")
 	}
 
 	callOpts := make([]grpc.CallOption, len(opts))
@@ -136,14 +147,10 @@ func (c *Grpc) Stream(
 	req interface{},
 	opts ...client.CallOption,
 ) (client.StreamClient, error) {
-	pcc, err := c.Dial(sc.GetServiceName())
+	pcc, cc, err := c.GetConnFromPool(sc.GetServiceName())
 	if err != nil {
+		c.logger.Errorf("conn error: %s", err)
 		return nil, err
-	}
-
-	cc, ok := pcc.Conn().(*grpc.ClientConn)
-	if !ok {
-		return nil, fmt.Errorf("invalid connection")
 	}
 
 	callOpts := make([]grpc.CallOption, len(opts))
