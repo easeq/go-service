@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/Netflix/go-env v0.0.0-20210215222557-e437a7e7f9fb
-	github.com/easeq/go-consul-registry/v2 v2.0.2-0.20230103102821-b91c288297c9
+	github.com/easeq/go-consul-registry/v2 v2.1.0
 	github.com/easeq/go-redis-access-control v0.0.6
 	github.com/go-redis/redis/v8 v8.11.4
 	github.com/gofiber/fiber/v2 v2.40.0
