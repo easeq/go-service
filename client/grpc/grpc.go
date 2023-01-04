@@ -3,7 +3,6 @@ package grpc
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/easeq/go-service/client"
@@ -34,6 +33,8 @@ var (
 	ErrInvalidGrpcClient = errors.New("invalid GrpcClient")
 	// ErrInvalidStreamDescription returned when the variable passed is not of grpc.StreamDesc type
 	ErrInvalidStreamDescription = errors.New("invalid stream description")
+	// ErrInvalidFactoryConn returned when factory conn is invalid
+	ErrInvalidFactoryConn = errors.New("invalid factory client connection")
 )
 
 // ClientOption to pass as arg while creating new service
@@ -109,10 +110,10 @@ func (c *Grpc) GetConnFromPool(serviceName string) (pool.Connection, *grpc.Clien
 
 	cc, ok := pcc.Conn().(*grpc.ClientConn)
 	if !ok {
-		return nil, nil, fmt.Errorf("invalid factory client connection")
+		return nil, nil, ErrInvalidFactoryConn
 	}
 
-	return nil, cc, nil
+	return pcc, cc, nil
 }
 
 // Call gRPC method
@@ -124,11 +125,13 @@ func (c *Grpc) Call(
 	res interface{},
 	opts ...client.CallOption,
 ) error {
-	_, cc, err := c.GetConnFromPool(sc.GetServiceName())
+	pcc, cc, err := c.GetConnFromPool(sc.GetServiceName())
 	if err != nil {
 		c.logger.Errorf("conn error: %s", err)
 		return err
 	}
+
+	defer pcc.Close()
 
 	callOpts := make([]grpc.CallOption, len(opts))
 	for i, opt := range opts {
