@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/easeq/go-service/broker"
 	"github.com/easeq/go-service/component"
@@ -68,7 +69,7 @@ func NewJetStream(opts ...broker.Option) *JetStream {
 func AddStream(name string, subjects ...string) broker.Option {
 	return func(b broker.Broker) {
 		if len(subjects) == 0 {
-			subjectAll := fmt.Sprintf("%s.*", name)
+			subjectAll := fmt.Sprintf("%s.>", name)
 			subjects = []string{subjectAll}
 		}
 
@@ -97,20 +98,23 @@ func (j *JetStream) streamExists(name string) *nats.StreamInfo {
 func (j *JetStream) createStream(name string, subjects ...string) error {
 	if streamInfo := j.streamExists(name); streamInfo != nil {
 		newStreamCfg := streamInfo.Config
+		newStreamCfg.Retention = nats.InterestPolicy
 		newStreamCfg.Subjects = utils.Unique(
 			append(newStreamCfg.Subjects, subjects...),
 		)
+
 		_, err := j.jsCtx.UpdateStream(&newStreamCfg)
 		return err
 	}
 
 	_, err := j.jsCtx.AddStream(&nats.StreamConfig{
-		Name:     name,
-		Subjects: subjects,
-		// Duplicates: 0 * time.Second,
-		Discard:   nats.DiscardOld,
-		Retention: nats.WorkQueuePolicy,
-		Replicas:  1,
+		Name:       name,
+		Subjects:   subjects,
+		Retention:  nats.InterestPolicy,
+		Duplicates: 0 * time.Second,
+		Discard:    nats.DiscardOld,
+		// Retention: nats.InterestPolicy,
+		// Replicas:  1,
 	})
 
 	return err
@@ -127,13 +131,15 @@ func (j *JetStream) Publish(ctx context.Context, topic string, message interface
 	return j.w.Publish(ctx, topic, payload, func(t *broker.TraceMsgCarrier) error {
 		data, err := t.Bytes()
 		if err != nil {
-			return fmt.Errorf("trace message carrier error: %v", err)
+			j.logger.Errorw("publish[data error]", "topic", topic, "err", err)
+			return err
 		}
 
 		// Send the message with span over NATS
 		_, err = j.jsCtx.Publish(topic, data, publisher.opts...)
 		if err != nil {
-			return fmt.Errorf("publish error: %v", err)
+			j.logger.Errorw("publish error", "topic", topic, "err", err)
+			return err
 		}
 
 		return nil
@@ -157,6 +163,7 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 				},
 			}); err != nil {
 				m.Nak()
+				j.logger.Errorw("subscribe handle error", "topic", topic, "err", err)
 				return fmt.Errorf("subscribe handle error: %v", err)
 			}
 
@@ -166,8 +173,10 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 	}
 
 	subscription, err := subscriber.Subscribe(natsHandler)
+	j.logger.Infow("subscription", "s", subscription)
 	if err != nil {
-		return fmt.Errorf("subscription error[topic: %s]: %v", topic, err)
+		j.logger.Errorw("subscribe error", "topic", topic, "err", err)
+		return err
 	}
 
 	j.Subscriptions[topic] = subscription
