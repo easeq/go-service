@@ -24,6 +24,8 @@ var (
 	ErrInvalidWatchOption = errors.New("invalid etcd watch option")
 	// ErrInvalidGetOption returned when the get option provided is not valid
 	ErrInvalidGetOption = errors.New("invalid etcd GET() option")
+	// ErrInvalidEtcdOpOption returned when the op option provided is not valid
+	ErrInvalidEtcdOpOption = errors.New("invalid etcd op option")
 )
 
 const (
@@ -145,22 +147,32 @@ func (e *Etcd) RenewLease(ctx context.Context, leaseID clientv3.LeaseID) error {
 // Add the record to the store with the lease_id
 func (e *Etcd) Put(ctx context.Context, record *kvstore.Record, opts ...kvstore.SetOpt) (*kvstore.Record, error) {
 	cb := func(ctx context.Context, record *kvstore.Record, opts ...kvstore.SetOpt) (*kvstore.Record, error) {
+		etcdOpts := []clientv3.OpOption{}
+		for _, opt := range opts {
+			etcdOpt, ok := opt.(clientv3.OpOption)
+			if !ok {
+				return nil, ErrInvalidEtcdOpOption
+			}
+
+			etcdOpts = append(etcdOpts, etcdOpt)
+		}
+
 		leaseID, err := e.LeaseID(ctx, record)
 		if err != nil {
 			return nil, fmt.Errorf("Error fetching leaseID for the given record: %v", err)
 		}
 
 		// Pass etcd PUT options
-		putOpts := []clientv3.OpOption{}
+		// putOpts := []clientv3.OpOption{}
 		if leaseID != 0 {
-			putOpts = append(putOpts, clientv3.WithLease(leaseID))
+			etcdOpts = append(etcdOpts, clientv3.WithLease(leaseID))
 		}
 
 		if _, err := e.Client.Put(
 			ctx,
 			record.Key,
 			string(record.Value),
-			putOpts...,
+			etcdOpts...,
 		); err != nil {
 			return nil, fmt.Errorf("Error saving record: %v", err)
 		}
