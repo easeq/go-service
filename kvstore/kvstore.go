@@ -20,7 +20,9 @@ type SetOpt interface{}
 // GetOpts are the additional options passed during the get opertation
 type GetOpt interface{}
 
-// SubscribeOpt are the additional options passed during the subscribe operation
+// DeleteOpt are the additional options passed during the delete opertation
+type DeleteOpt interface{}
+
 type SubscribeOpt interface{}
 
 // SubscribeHandler for the subscribe action
@@ -45,7 +47,7 @@ type KVStore interface {
 	// Get the value for the key
 	Get(ctx context.Context, key string, opts ...GetOpt) ([]*Record, error)
 	// Delete the key from the store
-	Delete(ctx context.Context, key string) error
+	Delete(ctx context.Context, key string, opts ...DeleteOpt) error
 	// Txn handles transactions
 	Txn(ctx context.Context, handler TxnHandler) error
 	// Subscribe to the changes made to the given key

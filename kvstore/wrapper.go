@@ -11,7 +11,7 @@ type Wrapper struct {
 
 type PutCallback func(context.Context, *Record, ...SetOpt) (*Record, error)
 type GetCallback func(context.Context, string, ...GetOpt) ([]*Record, error)
-type DeleteCallback func(context.Context, string) error
+type DeleteCallback func(context.Context, string, ...DeleteOpt) error
 type TxnCallback func(context.Context, TxnHandler) error
 type SubscribeCallback func(context.Context, string, SubscribeHandler) error
 
@@ -50,12 +50,13 @@ func (w *Wrapper) Delete(
 	ctx context.Context,
 	key string,
 	delete DeleteCallback,
+	opts ...DeleteOpt,
 ) error {
 	if w.trace == nil {
-		return delete(ctx, key)
+		return delete(ctx, key, opts...)
 	}
 
-	return w.trace.Delete(ctx, key, delete)
+	return w.trace.Delete(ctx, key, delete, opts...)
 }
 
 func (w *Wrapper) Txn(

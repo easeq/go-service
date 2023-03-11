@@ -33,7 +33,11 @@ func NewTrace(s KVStore) *Trace {
 	}
 }
 
-func (t *Trace) start(ctx context.Context, op string, key string) (context.Context, trace.Span) {
+func (t *Trace) start(
+	ctx context.Context,
+	op string,
+	key string,
+) (context.Context, trace.Span) {
 	if !trace.SpanFromContext(ctx).IsRecording() {
 		return ctx, nil
 	}
@@ -54,7 +58,12 @@ func (t *Trace) start(ctx context.Context, op string, key string) (context.Conte
 	return t.tracer.Start(ctx, opName, opts...)
 }
 
-func (t *Trace) Put(ctx context.Context, record *Record, put PutCallback, opts ...SetOpt) (*Record, error) {
+func (t *Trace) Put(
+	ctx context.Context,
+	record *Record,
+	put PutCallback,
+	opts ...SetOpt,
+) (*Record, error) {
 	ctx, span := t.start(ctx, "PUT", "")
 	if span == nil {
 		return put(ctx, record, opts...)
@@ -67,7 +76,12 @@ func (t *Trace) Put(ctx context.Context, record *Record, put PutCallback, opts .
 	return record, err
 }
 
-func (t *Trace) Get(ctx context.Context, key string, get GetCallback, opts ...GetOpt) ([]*Record, error) {
+func (t *Trace) Get(
+	ctx context.Context,
+	key string,
+	get GetCallback,
+	opts ...GetOpt,
+) ([]*Record, error) {
 	ctx, span := t.start(ctx, "GET", key)
 	if span == nil {
 		return get(ctx, key, opts...)
@@ -80,7 +94,12 @@ func (t *Trace) Get(ctx context.Context, key string, get GetCallback, opts ...Ge
 	return records, err
 }
 
-func (t *Trace) Delete(ctx context.Context, key string, delete DeleteCallback) error {
+func (t *Trace) Delete(
+	ctx context.Context,
+	key string,
+	delete DeleteCallback,
+	opts ...DeleteOpt,
+) error {
 	ctx, span := t.start(ctx, "DELETE", key)
 	if span == nil {
 		return delete(ctx, key)
@@ -93,7 +112,11 @@ func (t *Trace) Delete(ctx context.Context, key string, delete DeleteCallback) e
 	return err
 }
 
-func (t *Trace) Txn(ctx context.Context, handler TxnHandler, txn TxnCallback) error {
+func (t *Trace) Txn(
+	ctx context.Context,
+	handler TxnHandler,
+	txn TxnCallback,
+) error {
 	ctx, span := t.start(ctx, "TXN", "")
 	if span == nil {
 		return txn(ctx, handler)
@@ -106,7 +129,12 @@ func (t *Trace) Txn(ctx context.Context, handler TxnHandler, txn TxnCallback) er
 	return err
 }
 
-func (t *Trace) Subscribe(ctx context.Context, key string, handler SubscribeHandler, subscribe SubscribeCallback) error {
+func (t *Trace) Subscribe(
+	ctx context.Context,
+	key string,
+	handler SubscribeHandler,
+	subscribe SubscribeCallback,
+) error {
 	ctx, span := t.start(ctx, "SUBSCRIBE", "")
 	if span == nil {
 		return subscribe(ctx, key, handler)

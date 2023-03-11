@@ -235,13 +235,23 @@ func (e *Etcd) Get(ctx context.Context, key string, opts ...kvstore.GetOpt) ([]*
 }
 
 // Delete the key from the store
-func (e *Etcd) Delete(ctx context.Context, key string) error {
-	cb := func(ctx context.Context, key string) error {
-		_, err := e.Client.Delete(ctx, key)
+func (e *Etcd) Delete(ctx context.Context, key string, opts ...kvstore.DeleteOpt) error {
+	cb := func(ctx context.Context, key string, opts ...kvstore.DeleteOpt) error {
+		etcdOpts := []clientv3.OpOption{}
+		for _, opt := range opts {
+			etcdOpt, ok := opt.(clientv3.OpOption)
+			if !ok {
+				return ErrInvalidEtcdOpOption
+			}
+
+			etcdOpts = append(etcdOpts, etcdOpt)
+		}
+
+		_, err := e.Client.Delete(ctx, key, etcdOpts...)
 		return err
 	}
 
-	return e.wrapper.Delete(ctx, key, cb)
+	return e.wrapper.Delete(ctx, key, cb, opts...)
 }
 
 // Txn handles store transactions
