@@ -13,6 +13,7 @@ import (
 	"github.com/easeq/go-service/kvstore"
 	"github.com/easeq/go-service/logger"
 	"github.com/easeq/go-service/logger/zap"
+	object_store "github.com/easeq/go-service/object-store"
 	"github.com/easeq/go-service/registry"
 	"github.com/easeq/go-service/server"
 	"github.com/easeq/go-service/tracer"
@@ -104,6 +105,13 @@ func WithLogger(l logger.Logger) ServiceOption {
 	}
 }
 
+// WithObjectStore sets the logger used by the service
+func WithObjectStore(objectStore *object_store.Minio) ServiceOption {
+	return func(s *Service) {
+		s.components[object_store.OBJECT_STORE] = objectStore
+	}
+}
+
 // Broker returns the instance as broker.Broker
 func (s *Service) Broker() broker.Broker {
 	return s.components[broker.BROKER].(broker.Broker)
@@ -142,6 +150,10 @@ func (s *Service) Registry() registry.ServiceRegistry {
 // Logger returns the instance as logger.Logger
 func (s *Service) Logger() logger.Logger {
 	return s.components[logger.LOGGER].(logger.Logger)
+}
+
+func (s *Service) ObjectStore() *object_store.Minio {
+	return s.components[object_store.OBJECT_STORE].(*object_store.Minio)
 }
 
 // IterateComponents - iterates over all the service components and invokes the callback
