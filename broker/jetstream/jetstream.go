@@ -22,7 +22,7 @@ var (
 	ErrSubscriptionFailed = errors.New("nats subscription failed")
 )
 
-// Nsq holds our broker instance
+// JetStream holds our broker instance
 type JetStream struct {
 	i             component.Initializer
 	w             *broker.Wrapper
@@ -121,7 +121,12 @@ func (j *JetStream) createStream(name string, subjects ...string) error {
 }
 
 // Publish publishes the topic message
-func (j *JetStream) Publish(ctx context.Context, topic string, message interface{}, opts ...broker.PublishOption) error {
+func (j *JetStream) Publish(
+	ctx context.Context,
+	topic string,
+	message interface{},
+	opts ...broker.PublishOption,
+) error {
 	payload, err := json.Marshal(message)
 	if err != nil {
 		return fmt.Errorf("marshalling error: %v", err)
@@ -147,7 +152,12 @@ func (j *JetStream) Publish(ctx context.Context, topic string, message interface
 }
 
 // Subscribe subcribes for the given topic.
-func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.Handler, opts ...broker.SubscribeOption) error {
+func (j *JetStream) Subscribe(
+	ctx context.Context,
+	topic string,
+	handler broker.Handler,
+	opts ...broker.SubscribeOption,
+) (broker.Subscription, error) {
 	subscriber := NewSubscriber(j, topic, opts...)
 	natsHandler := func(m *nats.Msg) {
 		// Create new TraceMsg from normal NATS message.
@@ -173,14 +183,13 @@ func (j *JetStream) Subscribe(ctx context.Context, topic string, handler broker.
 	}
 
 	subscription, err := subscriber.Subscribe(natsHandler)
-	j.logger.Infow("subscription", "s", subscription)
 	if err != nil {
 		j.logger.Errorw("subscribe error", "topic", topic, "err", err)
-		return err
+		return nil, err
 	}
 
 	j.Subscriptions[topic] = subscription
-	return nil
+	return subscription, nil
 }
 
 // Ubsubscribe method is not applicable

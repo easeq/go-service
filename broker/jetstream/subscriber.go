@@ -2,6 +2,7 @@ package jetstream
 
 import (
 	"errors"
+	"time"
 
 	"github.com/easeq/go-service/broker"
 	"github.com/nats-io/nats.go"
@@ -42,6 +43,10 @@ func NewSubscriber(j *JetStream, topic string, opts ...broker.SubscribeOption) *
 			nats.ManualAck(),
 			nats.AckExplicit(),
 			nats.DeliverNew(),
+			nats.BackOff([]time.Duration{
+				30 * time.Second,
+				2 * time.Minute,
+			}),
 		},
 	}
 
@@ -65,6 +70,20 @@ func WithNatsSubOpts(opts ...nats.SubOpt) broker.SubscribeOption {
 func WithQueueSubscription() broker.SubscribeOption {
 	return func(s broker.Subscriber) {
 		s.(*subscriber).sType = QUEUE
+	}
+}
+
+// WithSyncSubscription - used to create a sync subscriber
+func WithSyncSubscription() broker.SubscribeOption {
+	return func(s broker.Subscriber) {
+		s.(*subscriber).sType = SYNC
+	}
+}
+
+// WithPullSubscription - used to create a pull subscriber
+func WithPullSubscription() broker.SubscribeOption {
+	return func(s broker.Subscriber) {
+		s.(*subscriber).sType = PULL
 	}
 }
 

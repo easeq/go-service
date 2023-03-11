@@ -34,12 +34,14 @@ type Broker interface {
 	// Publish a message
 	Publish(ctx context.Context, topic string, message interface{}, opts ...PublishOption) error
 	// Subscribe to a subject
-	Subscribe(ctx context.Context, topic string, handler Handler, opts ...SubscribeOption) error
+	Subscribe(ctx context.Context, topic string, handler Handler, opts ...SubscribeOption) (Subscription, error)
 	// Unsubscribe from a subject
 	Unsubscribe(topic string) error
 	// String returns the string name of the broker
 	String() string
 }
+
+type Subscription interface{}
 
 // Option to pass as arg while creating new broker instance
 type Option func(Broker)
