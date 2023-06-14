@@ -7,7 +7,7 @@ require (
 	github.com/easeq/go-consul-registry/v2 v2.1.0
 	github.com/easeq/go-redis-access-control v0.0.6
 	github.com/go-redis/redis/v8 v8.11.4
-	github.com/gofiber/fiber/v2 v2.40.0
+	github.com/gofiber/fiber/v2 v2.43.0
 	github.com/golang-migrate/migrate/v4 v4.15.2
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0
 	github.com/hashicorp/consul/api v1.8.1 // indirect
